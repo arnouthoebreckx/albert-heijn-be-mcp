@@ -1,0 +1,11 @@
+.env
+tokens.json
+.git
+.github
+.claude
+node_modules
+dist
+test
+*.log
+*.mcpb
+*.tgz
