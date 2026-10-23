@@ -11,9 +11,13 @@ import {
   getPreviouslyBoughtBonus,
   productUrl,
 } from "../ahapi/index.ts";
+import { isAnonymous } from "../auth/anonymous.ts";
 import { log } from "../log.ts";
 import { addAuthedTool, nonFatal, orDefault, parallel, structured, type ToolContext, withRetry, wrapError } from "./common.ts";
 import { productSummary, summarizeProduct } from "./views.ts";
+
+/** previously_bought is AH's "Eerder gekocht": it belongs to an account. */
+const PREVIOUSLY_BOUGHT_NEEDS_LOGIN = "previously_bought needs a logged-in Albert Heijn account; this server runs without one";
 
 const period = z.enum(["current", "next"]).optional();
 
@@ -94,6 +98,9 @@ export function registerBonusTools(server: McpServer, ctx: ToolContext): void {
         }
       }
       return structured({ offers });
+    },
+    (args) => {
+      if (args.previously_bought && isAnonymous(ctx.clients)) throw new Error(PREVIOUSLY_BOUGHT_NEEDS_LOGIN);
     },
   );
 
