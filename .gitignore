@@ -1,0 +1,11 @@
+# Dependencies and build output
+node_modules/
+dist/
+*.tgz
+*.mcpb
+package/
+
+# Local configuration and secrets
+.env
+tokens.json
+*.log

@@ -1,0 +1,6 @@
+# Left out of the .mcpb bundle (see the release workflow): files that never run.
+deploy/
+node_modules/zod/src/
+node_modules/@modelcontextprotocol/sdk/dist/cjs/
+*.d.cts
+*.d.mts

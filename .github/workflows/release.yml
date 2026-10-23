@@ -1,0 +1,84 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+  # npm trusted publishing and the MCP Registry login both prove the publish came from this workflow.
+  id-token: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # Later steps don't need git credentials; don't leave the token in .git/config.
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          registry-url: https://registry.npmjs.org
+          # npm advises against caches in release builds.
+          package-manager-cache: false
+      # No dependency needs install scripts; skipping them keeps a compromised one from running code here.
+      - run: npm ci --ignore-scripts
+      - name: Check tag matches package.json
+        run: |
+          version=$(node -p 'require("./package.json").version')
+          [ "$GITHUB_REF_NAME" = "v$version" ] || { echo "tag $GITHUB_REF_NAME does not match version $version"; exit 1; }
+          for v in $(jq -r '.version, .packages[].version' server.json) $(jq -r .version manifest.json); do
+            [ "$v" = "$version" ] || { echo "server.json or manifest.json has version $v, package.json $version"; exit 1; }
+          done
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+      - run: npm run lint
+      - run: npm run build
+      # One fixed name, so releases/latest/download/albert-heijn-mcp.tgz always works; the tag in the URL picks a version.
+      - name: Pack
+        run: mv "$(npm pack --silent)" albert-heijn-mcp.tgz
+      # The .mcpb bundle installs in desktop apps with a double-click: the npm package plus the manifest,
+      # the larger logo and production dependencies. .mcpbignore leaves out files that never run.
+      - name: Pack .mcpb bundle
+        env:
+          npm_config_ignore_scripts: "true"
+        run: |
+          tar xzf albert-heijn-mcp.tgz
+          cp manifest.json .mcpbignore package-lock.json package/
+          cp assets/logo.png package/assets/
+          (cd package && npm ci --omit=dev)
+          npx -y @anthropic-ai/mcpb@2.1.2 pack package albert-heijn-mcp.mcpb
+      # Creates the release, without notes (they are written by hand), unless it already exists (e.g. drafted by hand).
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 ||
+            gh release create "$GITHUB_REF_NAME" --title "albert-heijn-mcp $VERSION" --notes "" --verify-tag
+          gh release upload "$GITHUB_REF_NAME" albert-heijn-mcp.tgz albert-heijn-mcp.mcpb --clobber
+      # Trusted publishing: npm accepts this workflow's OIDC identity, so no token is stored, and adds
+      # provenance. The version is only staged: it goes live once the maintainer approves it on npmjs.com
+      # (or with `npm stage approve`). A version already on npm is skipped.
+      - name: Stage on npm
+        run: |
+          if [ "$(npm view "albert-heijn-mcp@$VERSION" version 2>/dev/null)" = "$VERSION" ]; then
+            echo "albert-heijn-mcp $VERSION is already on npm"
+          else
+            npm stage publish albert-heijn-mcp.tgz --access public
+          fi
+      - uses: ./.github/actions/mcp-publisher
+      # The registry checks that the version is on npm and its mcpName matches server.json, so this waits
+      # for the approval; if it takes longer, re-run this job from the Actions tab.
+      - name: Publish to the MCP Registry
+        timeout-minutes: 35
+        run: |
+          for _ in $(seq 60); do
+            [ "$(npm view "albert-heijn-mcp@$VERSION" version 2>/dev/null)" = "$VERSION" ] && break
+            echo "waiting for albert-heijn-mcp $VERSION to be approved on npm..."
+            sleep 30
+          done
+          [ "$(npm view "albert-heijn-mcp@$VERSION" version 2>/dev/null)" = "$VERSION" ] ||
+            { echo "albert-heijn-mcp $VERSION is not on npm yet; approve it, then re-run this job"; exit 1; }
+          ./mcp-publisher login github-oidc
+          ./mcp-publisher publish

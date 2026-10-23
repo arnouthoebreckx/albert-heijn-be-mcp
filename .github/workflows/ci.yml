@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # Later steps don't need git credentials; don't leave the token in .git/config.
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      # No dependency needs install scripts; skipping them keeps a compromised one from running code here.
+      - run: npm ci --ignore-scripts
+      - name: Type-check
+        run: npm run lint
+      - name: Build
+        run: npm run build
+      - name: Validate manifest.json for the .mcpb bundle
+        env:
+          npm_config_ignore_scripts: "true"
+        run: npx -y @anthropic-ai/mcpb@2.1.2 validate manifest.json
+      - uses: ./.github/actions/mcp-publisher
+      - name: Validate server.json for the MCP Registry
+        run: |
+          ./mcp-publisher validate
