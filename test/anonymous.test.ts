@@ -83,3 +83,19 @@ test("a token that expires soon is renewed before the next call", async () => {
   await search(session);
   assert.equal(calls.filter((c) => c.url.pathname === TOKEN_PATH).length, 2);
 });
+
+// Review round 1, finding 1: parallel calls share one token request.
+test("parallel first calls share one token request", async () => {
+  const calls = fakeAh();
+  const session = new AnonymousSession();
+  await Promise.all([search(session), search(session), search(session)]);
+  assert.equal(calls.filter((c) => c.url.pathname === TOKEN_PATH).length, 1);
+});
+
+test("parallel calls on a token that expires soon share one renewal", async () => {
+  const calls = fakeAh((call) => (call.url.pathname === TOKEN_PATH ? { body: { access_token: `SHORT-${calls.length}`, expires_in: 5 } } : undefined));
+  const session = new AnonymousSession();
+  await search(session);
+  await Promise.all([search(session), search(session), search(session)]);
+  assert.equal(calls.filter((c) => c.url.pathname === TOKEN_PATH).length, 2);
+});

@@ -18,8 +18,13 @@ export class AnonymousSession {
 
   /** Returns a client with a valid token, getting a new one first if there is none or it expires soon. */
   async client(): Promise<AhClient> {
-    let token = await this.#token;
-    if (!token || token.expiresAt - Date.now() < RENEW_MARGIN_MS) token = await this.#renew();
+    const seen = this.#token;
+    if (!seen) return new AhClient((await this.#renew()).access);
+    let token = await seen;
+    if (token.expiresAt - Date.now() < RENEW_MARGIN_MS) {
+      // Renew, unless a parallel call already did while this one waited.
+      token = await (this.#token && this.#token !== seen ? this.#token : this.#renew());
+    }
     return new AhClient(token.access);
   }
 
