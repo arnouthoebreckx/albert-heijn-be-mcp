@@ -12,7 +12,7 @@ import { newToolContext, registerTools } from "../src/tools/index.ts";
 /** The tools over an in-memory connection, on an anonymous token. Whatever fetch is then answers AH. */
 export async function connect(): Promise<Client> {
   const session = new Session(join(mkdtempSync(join(tmpdir(), "ah-be-mcp-")), "tokens.json"));
-  const ctx = newToolContext(session, { remote: true, hosted: false, clients: new AnonymousSession() });
+  const ctx = newToolContext(session, { remote: true, hosted: false, anonymous: true, clients: new AnonymousSession() });
   const server = new McpServer({ name: "test", version: "0" });
   registerTools(server, ctx);
   const [a, b] = InMemoryTransport.createLinkedPair();

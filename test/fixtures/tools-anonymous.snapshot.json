@@ -1,0 +1,730 @@
+[
+  {
+    "name": "ah_get_bonus_group_products",
+    "annotations": {
+      "title": "Albert Heijn: Bonus Group Products",
+      "readOnlyHint": true
+    },
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "segment_id": {
+          "type": "string",
+          "description": "Bonus segment ID from the bonus_segment_id field in ah_get_bonus_offers"
+        },
+        "period": {
+          "description": "Bonus week of the offer: 'current' (default) or 'next'",
+          "type": "string",
+          "enum": [
+            "current",
+            "next"
+          ]
+        }
+      },
+      "required": [
+        "segment_id"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "products": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "number"
+              },
+              "title": {
+                "type": "string"
+              },
+              "url": {
+                "type": "string"
+              },
+              "price": {
+                "type": "number"
+              },
+              "bonus_price": {
+                "type": "number"
+              },
+              "unit": {
+                "type": "string"
+              },
+              "is_bonus": {
+                "type": "boolean"
+              },
+              "bonus_mechanism": {
+                "type": "string"
+              },
+              "image_url": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "title",
+              "url",
+              "price",
+              "is_bonus"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "products"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "ah_get_bonus_offers",
+    "annotations": {
+      "title": "Albert Heijn: Bonus Offers",
+      "readOnlyHint": true
+    },
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "limit": {
+          "description": "Maximum number of results to return (default 20)",
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "query": {
+          "description": "Optional keyword filter (Dutch or English) applied client-side, e.g. 'kaas', 'vlees', 'bier'",
+          "type": "string"
+        },
+        "period": {
+          "description": "Which bonus week to return: 'current' (default) or 'next'",
+          "type": "string",
+          "enum": [
+            "current",
+            "next"
+          ]
+        },
+        "previously_bought": {
+          "description": "Only offers on products the user bought before",
+          "type": "boolean"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "offers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "number"
+              },
+              "bonus_segment_id": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "url": {
+                "type": "string"
+              },
+              "original_price": {
+                "type": "number"
+              },
+              "bonus_price": {
+                "type": "number"
+              },
+              "discount_percentage": {
+                "type": "number"
+              },
+              "bonus_mechanism": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "title"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "offers"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "ah_get_product_alternatives",
+    "annotations": {
+      "title": "Albert Heijn: Product Alternatives",
+      "readOnlyHint": true
+    },
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "product_id": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991,
+          "description": "Product ID, e.g. from ah_search_products or ah_get_shopping_list"
+        },
+        "limit": {
+          "description": "Maximum number of alternatives (default 10, max 30)",
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "product_id"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "products": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "number"
+              },
+              "title": {
+                "type": "string"
+              },
+              "url": {
+                "type": "string"
+              },
+              "price": {
+                "type": "number"
+              },
+              "bonus_price": {
+                "type": "number"
+              },
+              "unit": {
+                "type": "string"
+              },
+              "is_bonus": {
+                "type": "boolean"
+              },
+              "bonus_mechanism": {
+                "type": "string"
+              },
+              "image_url": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "title",
+              "url",
+              "price",
+              "is_bonus"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "products"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "ah_get_products",
+    "annotations": {
+      "title": "Albert Heijn: Product Details",
+      "readOnlyHint": true
+    },
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "product_ids": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "description": "Product IDs from ah_search_products, e.g. [123456] or [123456, 789012] (max 20)"
+        },
+        "include_nutritional_info": {
+          "description": "Include nutritional values (default false)",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "product_ids"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "products": {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "number"
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "url": {
+                    "type": "string"
+                  },
+                  "brand": {
+                    "type": "string"
+                  },
+                  "category": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "price": {
+                    "type": "number"
+                  },
+                  "bonus_price": {
+                    "type": "number"
+                  },
+                  "unit_size": {
+                    "type": "string"
+                  },
+                  "unit_price_description": {
+                    "type": "string"
+                  },
+                  "is_bonus": {
+                    "type": "boolean"
+                  },
+                  "bonus_mechanism": {
+                    "type": "string"
+                  },
+                  "nutri_score": {
+                    "type": "string"
+                  },
+                  "is_available": {
+                    "type": "boolean"
+                  },
+                  "property_icons": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "nutritional_info": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "name",
+                        "value"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "image_url": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "title",
+                  "url",
+                  "price",
+                  "is_bonus",
+                  "is_available"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "number"
+                  },
+                  "error": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "error"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          }
+        }
+      },
+      "required": [
+        "products"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "ah_get_recipe",
+    "annotations": {
+      "title": "Albert Heijn: Recipe",
+      "readOnlyHint": true
+    },
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "recipe_id": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991,
+          "description": "Recipe id from ah_search_recipes"
+        },
+        "servings": {
+          "description": "Number of servings to scale the ingredients to",
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "recipe_id"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "number"
+        },
+        "title": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "cook_minutes": {
+          "type": "number"
+        },
+        "servings": {
+          "type": "string"
+        },
+        "courses": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "cuisines": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "nutri_score": {
+          "type": "string"
+        },
+        "rating": {
+          "type": "string"
+        },
+        "ingredients": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "nutrition_per_serving": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "url",
+        "servings",
+        "ingredients",
+        "steps"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "ah_search_products",
+    "annotations": {
+      "title": "Albert Heijn: Search Products",
+      "readOnlyHint": true
+    },
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "queries": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Search queries in Dutch or English, e.g. [\"melk\"] or [\"melk\", \"kaas\", \"brood\"] (max 10)"
+        },
+        "limit": {
+          "description": "Maximum results per query (default 10 for one query, 5 for several; max 30)",
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "bonus": {
+          "description": "Return only products currently on bonus/promotion",
+          "type": "boolean"
+        },
+        "filters": {
+          "description": "Only products matching all of these, e.g. [\"organic\", \"vegan\"]",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "organic",
+              "prijsfavoriet",
+              "new",
+              "frozen",
+              "vegan",
+              "vegetarian",
+              "low_sugar",
+              "low_fat",
+              "low_salt",
+              "gluten_free",
+              "lactose_free",
+              "milk_free",
+              "egg_free",
+              "nut_free",
+              "peanut_free",
+              "soy_free",
+              "fish_free",
+              "shellfish_free",
+              "sesame_free",
+              "celery_free",
+              "mustard_free",
+              "lupin_free",
+              "sulphite_free"
+            ]
+          }
+        },
+        "sort": {
+          "description": "Result order (default relevance)",
+          "type": "string",
+          "enum": [
+            "relevance",
+            "price_low_high",
+            "price_high_low",
+            "most_bought",
+            "nutriscore"
+          ]
+        }
+      },
+      "required": [
+        "queries"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "searches": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "query": {
+                "type": "string"
+              },
+              "results": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "number"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "url": {
+                      "type": "string"
+                    },
+                    "price": {
+                      "type": "number"
+                    },
+                    "bonus_price": {
+                      "type": "number"
+                    },
+                    "unit": {
+                      "type": "string"
+                    },
+                    "is_bonus": {
+                      "type": "boolean"
+                    },
+                    "bonus_mechanism": {
+                      "type": "string"
+                    },
+                    "image_url": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "title",
+                    "url",
+                    "price",
+                    "is_bonus"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "error": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "query",
+              "results"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "searches"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "ah_search_recipes",
+    "annotations": {
+      "title": "Albert Heijn: Search Recipes",
+      "readOnlyHint": true
+    },
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string",
+          "description": "Search text, e.g. 'pasta zalm'"
+        },
+        "limit": {
+          "description": "Maximum number of results (default 10, max 30)",
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "query"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "total": {
+          "type": "number"
+        },
+        "recipes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "number"
+              },
+              "title": {
+                "type": "string"
+              },
+              "url": {
+                "type": "string"
+              },
+              "cook_minutes": {
+                "type": "number"
+              },
+              "oven_minutes": {
+                "type": "number"
+              },
+              "wait_minutes": {
+                "type": "number"
+              },
+              "servings": {
+                "type": "string"
+              },
+              "courses": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "nutri_score": {
+                "type": "string"
+              },
+              "rating": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "title",
+              "url"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "total",
+        "recipes"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false
+    }
+  }
+]
