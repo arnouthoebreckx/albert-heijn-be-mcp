@@ -1,6 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { fullName, getMember, LOGIN_URL } from "../ahapi/index.ts";
+import { fullName, getMember, loginUrl } from "../ahapi/index.ts";
 import { openInDefaultBrowser } from "../auth/browser.ts";
 import { extractCode, manualLoginSteps, STALE_LOGIN } from "../auth/login.ts";
 import { log } from "../log.ts";
@@ -67,7 +67,7 @@ export function registerAccountTools(server: McpServer, ctx: ToolContext): void 
       }
       const failed = ctx.browserLogin.error;
       // A login saved meanwhile, e.g. with a pasted code, is kept.
-      const opened = await ctx.browserLogin.start(LOGIN_URL, async (windowCode) => {
+      const opened = await ctx.browserLogin.start(loginUrl(), async (windowCode) => {
         if (!(await ctx.session.completeLogin(windowCode, status.refreshToken))) {
           throw new Error("another login was saved meanwhile, so this one wasn't used");
         }
@@ -84,7 +84,7 @@ export function registerAccountTools(server: McpServer, ctx: ToolContext): void 
       // start() reports only a failure of the window it just tried.
       const broken = ctx.browserLogin.error;
       const why = broken ? `The login window couldn't open (${broken.message}). ` : "";
-      openInDefaultBrowser(LOGIN_URL);
+      openInDefaultBrowser(loginUrl());
       return text(intro + why + manualLogin(true));
     },
   );

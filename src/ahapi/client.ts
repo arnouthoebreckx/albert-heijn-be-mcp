@@ -1,13 +1,13 @@
 // Client for the AH mobile app API (REST under /mobile-services, plus GraphQL).
 
 import { describeError, type LogSafe } from "../log.ts";
+import { site } from "../site.ts";
 
 // The API expects the official iOS app. If AH starts rejecting requests,
 // update the version and user agent to the current app release first.
 export const CLIENT_NAME = "appie-ios";
 const CLIENT_VERSION = "9.28";
 const USER_AGENT = "Appie/9.28 (iPhone17,3; iPhone; CPU OS 26_1 like Mac OS X)";
-const BASE_URL = "https://api.ah.nl";
 const TIMEOUT_MS = 30_000;
 
 /**
@@ -104,14 +104,14 @@ export class AhClient {
       "User-Agent": USER_AGENT,
       "x-client-name": CLIENT_NAME,
       "x-client-version": CLIENT_VERSION,
-      "x-application": "AHWEBSHOP",
+      "x-application": site().application,
       Accept: "application/json",
     };
     if (options.body !== undefined) headers["Content-Type"] = "application/json";
     if (this.token) headers.Authorization = `Bearer ${this.token}`;
     if (options.orderId) headers["Appie-Current-Order-Id"] = String(options.orderId);
 
-    const res = await fetch(BASE_URL + path, {
+    const res = await fetch(site().apiBase + path, {
       method: options.method ?? "GET",
       headers,
       body: options.body === undefined ? undefined : JSON.stringify(options.body),

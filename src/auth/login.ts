@@ -1,4 +1,4 @@
-import { LOGIN_URL } from "../ahapi/index.ts";
+import { loginUrl } from "../ahapi/index.ts";
 
 /** code=... in the pasted appie://login-exit link or the console line quoting it; links elsewhere don't count. */
 const CODE_PARAM = /appie:\/\/login-exit\?(?:[^\s'"]*&)?code=([A-Za-z0-9._~-]+)/;
@@ -25,7 +25,7 @@ export const STALE_LOGIN = "The stored Albert Heijn login no longer works, so lo
 /** The steps for logging in by copying the code by hand; paste says where the last step pastes the link. */
 export function manualLoginSteps(opened: boolean, paste: string): string {
   return `1. Open this link in Chrome, Edge or Brave${opened ? " (it may have opened in your default browser; use that tab only if it's one of these)" : ""}, but don't log in yet:
-   ${LOGIN_URL}
+   ${loginUrl()}
 2. On that page, open the developer console first: Cmd+Option+J on Mac, Ctrl+Shift+J on Windows/Linux.
    It's a panel for web developers and safe to open. If you already logged in, open the link again in that same tab.
 3. Log in. The page then seems stuck: AH tries to open its phone app, which the browser can't.
