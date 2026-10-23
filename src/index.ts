@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// albert-heijn-mcp: a Model Context Protocol server for the Albert Heijn supermarket API.
+// albert-heijn-be-mcp: a Model Context Protocol server for the Albert Heijn supermarket API.
 
 import { readFileSync } from "node:fs";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -37,7 +37,7 @@ async function main(): Promise<void> {
     return;
   }
   if (cfg.showVersion) {
-    console.log(`albert-heijn-mcp ${version}`);
+    console.log(`albert-heijn-be-mcp ${version}`);
     return;
   }
   if (cfg.command === "login") {
@@ -50,11 +50,11 @@ async function main(): Promise<void> {
     return;
   }
   if (cfg.logFile) await logToFile(cfg.logFile);
-  log.info("albert-heijn-mcp", { version });
+  log.info("albert-heijn-be-mcp", { version });
 
   const ctx = newToolContext(new Session(cfg.tokensPath), cfg);
   const newServer = () => {
-    const server = new McpServer({ name: "Albert Heijn", version, icons: [ICON] }, { instructions: INSTRUCTIONS });
+    const server = new McpServer({ name: "albert-heijn-be-mcp", title: "Albert Heijn", version, icons: [ICON] }, { instructions: INSTRUCTIONS });
     registerTools(server, ctx);
     return server;
   };

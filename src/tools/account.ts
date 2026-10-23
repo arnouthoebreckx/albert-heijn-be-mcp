@@ -147,7 +147,7 @@ const HOSTED_LOGIN_NOTE =
 /** For whoever runs the server: the login command needs no developer console. */
 const SERVER_LOGIN_HINT =
   "\n\nWhoever runs this server can instead log it in without the console, from their own computer: " +
-  "see https://github.com/olekpuchka/albert-heijn-mcp#running-it-on-a-server";
+  "see https://github.com/arnouthoebreckx/albert-heijn-be-mcp#running-it-on-a-server";
 
 /** Steps for logging in by copying the code by hand; hosted adds what matters when the server runs elsewhere. */
 function manualLogin(opened: boolean, hosted = false): string {

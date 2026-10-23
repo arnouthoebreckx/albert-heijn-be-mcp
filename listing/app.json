@@ -1,5 +1,5 @@
 {
-  "name": "albert-heijn-mcp",
+  "name": "albert-heijn-be-mcp",
   "displayName": "Albert Heijn",
   "shortDescription": "Shop at Albert Heijn: products, bonus deals, recipes and your shopping list.",
   "description": "Use your Albert Heijn account in your AI assistant: search products and bonus deals, plan meals from Allerhande recipes, manage your shopping list, favourites and delivery order, and look back at your orders and receipts.",
@@ -19,7 +19,7 @@
     "shopping list",
     "netherlands"
   ],
-  "homepage": "https://github.com/olekpuchka/albert-heijn-mcp",
+  "homepage": "https://github.com/arnouthoebreckx/albert-heijn-be-mcp",
   "license": "Apache-2.0",
   "icon": "assets/icon.png",
   "logo": "assets/logo.png"

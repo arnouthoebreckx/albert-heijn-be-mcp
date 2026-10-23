@@ -35,37 +35,37 @@ jobs:
           echo "VERSION=$version" >> "$GITHUB_ENV"
       - run: npm run lint
       - run: npm run build
-      # One fixed name, so releases/latest/download/albert-heijn-mcp.tgz always works; the tag in the URL picks a version.
+      # One fixed name, so releases/latest/download/albert-heijn-be-mcp.tgz always works; the tag in the URL picks a version.
       - name: Pack
-        run: mv "$(npm pack --silent)" albert-heijn-mcp.tgz
+        run: mv "$(npm pack --silent)" albert-heijn-be-mcp.tgz
       # The .mcpb bundle installs in desktop apps with a double-click: the npm package plus the manifest,
       # the larger logo and production dependencies. .mcpbignore leaves out files that never run.
       - name: Pack .mcpb bundle
         env:
           npm_config_ignore_scripts: "true"
         run: |
-          tar xzf albert-heijn-mcp.tgz
+          tar xzf albert-heijn-be-mcp.tgz
           cp manifest.json .mcpbignore package-lock.json package/
           cp assets/logo.png package/assets/
           (cd package && npm ci --omit=dev)
-          npx -y @anthropic-ai/mcpb@2.1.2 pack package albert-heijn-mcp.mcpb
+          npx -y @anthropic-ai/mcpb@2.1.2 pack package albert-heijn-be-mcp.mcpb
       # Creates the release, without notes (they are written by hand), unless it already exists (e.g. drafted by hand).
       - name: Publish GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 ||
-            gh release create "$GITHUB_REF_NAME" --title "albert-heijn-mcp $VERSION" --notes "" --verify-tag
-          gh release upload "$GITHUB_REF_NAME" albert-heijn-mcp.tgz albert-heijn-mcp.mcpb --clobber
+            gh release create "$GITHUB_REF_NAME" --title "albert-heijn-be-mcp $VERSION" --notes "" --verify-tag
+          gh release upload "$GITHUB_REF_NAME" albert-heijn-be-mcp.tgz albert-heijn-be-mcp.mcpb --clobber
       # Trusted publishing: npm accepts this workflow's OIDC identity, so no token is stored, and adds
       # provenance. The version is only staged: it goes live once the maintainer approves it on npmjs.com
       # (or with `npm stage approve`). A version already on npm is skipped.
       - name: Stage on npm
         run: |
-          if [ "$(npm view "albert-heijn-mcp@$VERSION" version 2>/dev/null)" = "$VERSION" ]; then
-            echo "albert-heijn-mcp $VERSION is already on npm"
+          if [ "$(npm view "albert-heijn-be-mcp@$VERSION" version 2>/dev/null)" = "$VERSION" ]; then
+            echo "albert-heijn-be-mcp $VERSION is already on npm"
           else
-            npm stage publish albert-heijn-mcp.tgz --access public
+            npm stage publish albert-heijn-be-mcp.tgz --access public
           fi
       - uses: ./.github/actions/mcp-publisher
       # The registry checks that the version is on npm and its mcpName matches server.json, so this waits
@@ -74,11 +74,11 @@ jobs:
         timeout-minutes: 35
         run: |
           for _ in $(seq 60); do
-            [ "$(npm view "albert-heijn-mcp@$VERSION" version 2>/dev/null)" = "$VERSION" ] && break
-            echo "waiting for albert-heijn-mcp $VERSION to be approved on npm..."
+            [ "$(npm view "albert-heijn-be-mcp@$VERSION" version 2>/dev/null)" = "$VERSION" ] && break
+            echo "waiting for albert-heijn-be-mcp $VERSION to be approved on npm..."
             sleep 30
           done
-          [ "$(npm view "albert-heijn-mcp@$VERSION" version 2>/dev/null)" = "$VERSION" ] ||
-            { echo "albert-heijn-mcp $VERSION is not on npm yet; approve it, then re-run this job"; exit 1; }
+          [ "$(npm view "albert-heijn-be-mcp@$VERSION" version 2>/dev/null)" = "$VERSION" ] ||
+            { echo "albert-heijn-be-mcp $VERSION is not on npm yet; approve it, then re-run this job"; exit 1; }
           ./mcp-publisher login github-oidc
           ./mcp-publisher publish

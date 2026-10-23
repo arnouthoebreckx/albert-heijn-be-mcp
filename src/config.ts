@@ -30,8 +30,8 @@ export interface Config {
   http: HttpOptions;
 }
 
-export const USAGE = `Usage: albert-heijn-mcp [--transport stdio|streamable-http] [--remote] [--version] [--help]
-       albert-heijn-mcp login [--remote]
+export const USAGE = `Usage: albert-heijn-be-mcp [--transport stdio|streamable-http] [--remote] [--version] [--help]
+       albert-heijn-be-mcp login [--remote]
 
   login        log in to Albert Heijn from the terminal, save the tokens and exit
   --transport  stdio (default) or streamable-http
@@ -65,7 +65,7 @@ export function loadConfig(argv: string[], env: NodeJS.ProcessEnv = process.env)
   }
   const port = envInt(env, "AH_MCP_PORT", 3000);
   const baseUrl = env.AH_MCP_BASE_URL || `http://localhost:${port}`;
-  if (!URL.canParse(baseUrl)) throw new Error(`AH_MCP_BASE_URL: "${baseUrl}" is not a URL (e.g. https://albert-heijn-mcp.example.com)`);
+  if (!URL.canParse(baseUrl)) throw new Error(`AH_MCP_BASE_URL: "${baseUrl}" is not a URL (e.g. https://albert-heijn-be-mcp.example.com)`);
   return {
     command,
     transport,
