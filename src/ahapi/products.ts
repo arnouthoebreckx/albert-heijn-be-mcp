@@ -36,7 +36,7 @@ export function productPrices(p: Product): { regular: number; bonus: number } {
 export function productUrl(id: number, title = ""): string {
   const slug = title
     .normalize("NFKD")
-    .replace(/[̀-ͯ]/g, "")
+    .replace(/[\\u0300-\\u036f]/g, "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "");
