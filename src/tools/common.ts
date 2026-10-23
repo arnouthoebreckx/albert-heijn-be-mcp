@@ -23,9 +23,15 @@ export const productItems = z
 
 export const confirmInput = { confirm: z.string().describe('Must be "yes" to confirm') };
 
+/** Where tool handlers get an AH client: the login session, or an anonymous one. */
+export interface ClientSource {
+  withClient<T>(fn: (c: AhClient) => Promise<T>): Promise<T>;
+}
+
 /** State shared by tool handlers. */
 export interface ToolContext {
   session: Session;
+  clients: ClientSource;
   /** Don't open a browser on login. */
   remote: boolean;
   /** Served over HTTP: users connect from apps elsewhere, possibly on a phone. */
@@ -41,9 +47,13 @@ export interface ToolContext {
   members: TtlCache<Member>;
 }
 
-export function newToolContext(session: Session, { remote, hosted }: { remote: boolean; hosted: boolean }): ToolContext {
+export function newToolContext(
+  session: Session,
+  { remote, hosted, clients }: { remote: boolean; hosted: boolean; clients?: ClientSource },
+): ToolContext {
   return {
     session,
+    clients: clients ?? session,
     remote,
     hosted,
     browserLogin: new BrowserLogin(),
@@ -165,14 +175,14 @@ function modelMessage(err: Error): string | undefined {
   return undefined;
 }
 
-/** Registers a tool that needs a login. On a 401, refreshes the token and retries once. */
+/** Registers a tool that needs a client. On a 401, the client source renews the token and runs it once more. */
 export function addAuthedTool<Shape extends z.ZodRawShape>(
   server: McpServer,
   ctx: ToolContext,
   def: ToolDef<Shape>,
   handler: (c: AhClient, args: Args<Shape>) => Promise<CallToolResult>,
 ): void {
-  addTool(server, def, (args) => ctx.session.withClient((c) => handler(c, args)));
+  addTool(server, def, (args) => ctx.clients.withClient((c) => handler(c, args)));
 }
 
 export { wrapError } from "../ahapi/index.ts";

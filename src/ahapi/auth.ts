@@ -15,6 +15,14 @@ export interface Token {
   expires_in?: number;
 }
 
+/** Gets a token for a visitor without an account (see AnonymousSession). */
+export function anonymousToken(c: AhClient): Promise<Token> {
+  return c.request<Token>("/mobile-auth/v1/auth/token/anonymous", {
+    method: "POST",
+    body: { clientId: site().clientId },
+  });
+}
+
 /** Exchanges an OAuth authorization code for tokens. */
 export function exchangeCode(c: AhClient, code: string): Promise<Token> {
   return c.request<Token>("/mobile-auth/v1/auth/token", {

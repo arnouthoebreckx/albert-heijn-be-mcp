@@ -4,6 +4,7 @@
 import { readFileSync } from "node:fs";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { AnonymousSession } from "./auth/anonymous.ts";
 import { Session } from "./auth/session.ts";
 import { loadConfig, loadDotEnv, USAGE } from "./config.ts";
 import { instructions } from "./instructions.ts";
@@ -48,7 +49,11 @@ async function main(): Promise<void> {
   if (cfg.logFile) await logToFile(cfg.logFile);
   log.info("albert-heijn-be-mcp", { version });
 
-  const ctx = newToolContext(new Session(cfg.tokensPath), cfg);
+  const ctx = newToolContext(new Session(cfg.tokensPath), {
+    remote: cfg.remote,
+    hosted: cfg.hosted,
+    clients: cfg.anonymous ? new AnonymousSession() : undefined,
+  });
   const newServer = () => {
     const server = new McpServer({ name: "albert-heijn-be-mcp", title: "Albert Heijn", version, icons: [ICON] }, { instructions: instructions() });
     registerTools(server, ctx);
