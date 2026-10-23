@@ -70,7 +70,7 @@ describe("end to end", () => {
   let fake: FakeAhServer;
   before(async () => {
     // A container reaches the fake AH through the host, so it listens on every interface for the image.
-    fake = IMAGE ? await startFakeAh("0.0.0.0", "host.docker.internal") : await startFakeAh();
+    fake = await startFakeAh(IMAGE ? "0.0.0.0" : "127.0.0.1");
   });
   after(() => fake.close());
 
@@ -105,7 +105,7 @@ describe("end to end", () => {
     // The image's own defaults: --anonymous, streamable HTTP, AH_SITE=be, AH_MCP_HOST=0.0.0.0. Only the fake AH is ours.
     const container: ChildProcess = spawn(
       "docker",
-      ["run", "--rm", "--read-only", "--add-host=host.docker.internal:host-gateway", "-p", `127.0.0.1:${port}:3000`, "-e", `AH_API_BASE_URL=${fake.url}`, IMAGE!],
+      ["run", "--rm", "--read-only", "--add-host=host.docker.internal:host-gateway", "-p", `127.0.0.1:${port}:3000`, "-e", `AH_API_BASE_URL=${fake.containerUrl}`, IMAGE!],
       { stdio: ["ignore", "inherit", "inherit"] },
     );
     try {
