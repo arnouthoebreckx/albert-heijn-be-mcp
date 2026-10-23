@@ -1,5 +1,5 @@
 import { createInterface } from "node:readline/promises";
-import { fullName, LOGIN_URL } from "./ahapi/index.ts";
+import { fullName, loginUrl } from "./ahapi/index.ts";
 import { findBrowser, loginInWindow, openInDefaultBrowser } from "./auth/browser.ts";
 import { extractCode, manualLoginSteps, STALE_LOGIN } from "./auth/login.ts";
 import type { Session } from "./auth/session.ts";
@@ -46,7 +46,7 @@ async function windowLogin(save: (code: string) => Promise<boolean>): Promise<bo
       throw err;
     });
   try {
-    return await loginInWindow(LOGIN_URL, browser, trackedSave, abort.signal);
+    return await loginInWindow(loginUrl(), browser, trackedSave, abort.signal);
   } catch (err) {
     // The window did its part if saving failed; logging in by hand wouldn't help.
     if (abort.signal.aborted || saveFailed) throw err;
@@ -59,7 +59,7 @@ async function windowLogin(save: (code: string) => Promise<boolean>): Promise<bo
 
 /** The code the user pastes after logging in by hand; open opens the login page in the default browser. */
 async function manualCode(open: boolean): Promise<string> {
-  if (open) openInDefaultBrowser(LOGIN_URL);
+  if (open) openInDefaultBrowser(loginUrl());
   console.log(`${manualLoginSteps(open, "below")}\n`);
   const rl = createInterface({ input: process.stdin, output: process.stdout });
   try {

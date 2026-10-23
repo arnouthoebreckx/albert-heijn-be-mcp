@@ -1,3 +1,4 @@
+import { site } from "../site.ts";
 import type { AhClient } from "./client.ts";
 import { fromGraphqlProduct, GRAPHQL_PRODUCT_FIELDS, type GraphqlProduct, type Product } from "./products.ts";
 
@@ -61,7 +62,7 @@ export interface BonusOffer {
 }
 
 async function fetchSection(c: AhClient, path: string, params: Record<string, string>): Promise<BonusOffer[]> {
-  const query = new URLSearchParams({ application: "AHWEBSHOP", ...params });
+  const query = new URLSearchParams({ application: site().application, ...params });
   const res = await c.request<{ bonusGroupOrProducts?: { product?: Product; bonusGroup?: BonusGroup }[] }>(
     `/mobile-services/bonuspage/v2/${path}?${query}`,
   );
