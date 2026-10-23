@@ -147,6 +147,8 @@ To install it permanently instead, run `npm install --global albert-heijn-mcp` a
 
 ## Logging in
 
+**Belgium (`--site be`, the default):** a Belgian login is not part of v1 and is not tested. The login tools point at `login.ah.be`, but nobody has checked that they work. For ah.be, run the server with `--anonymous` (see [Configuration](#configuration)): it needs no login and serves search, products and the bonus.
+
 Ask your assistant to log you in to Albert Heijn. You only do this once; the login is then kept and renewed automatically.
 
 **On your computer** (Claude Desktop, Cursor, VS Code and other local apps), a separate browser window opens with AH's login page. Log in there as usual: the window closes by itself and you're logged in. Then tell your assistant you're done.
@@ -324,6 +326,9 @@ Settings are environment variables. They can also go in a `.env` file in the wor
 
 | Variable | Default | Description |
 |---|---|---|
+| `AH_SITE` | `be` | The Albert Heijn site: `be` (ah.be) or `nl` (ah.nl, upstream's). Same as `--site`. Product, recipe and bonus links point to `www.ah.be` or `www.ah.nl`. |
+| `AH_ANONYMOUS` | `false` | `true`: no login. The server gets an anonymous token from Albert Heijn (kept in memory, no tokens file) and uses it for the calls that need no account. Same as `--anonymous`. |
+| `AH_API_BASE_URL` | per site | Replaces the API host (`https://api.ah.be` or `https://api.ah.nl`). For tests only. |
 | `AH_REMOTE` | `false` | Don't open a browser on login; log in by copying the code instead (same as `--remote`). Always on with `streamable-http`. |
 | `AH_TOKENS_PATH` | [per OS](#logging-in) | Where to store login tokens. |
 | `AH_MCP_HOST` | `127.0.0.1` | Interface the HTTP server listens on. Keep the default behind a reverse proxy. |
@@ -335,7 +340,7 @@ Settings are environment variables. They can also go in a `.env` file in the wor
 Command-line flags:
 
 ```
-node dist/index.js [--transport stdio|streamable-http] [--remote] [--version] [--help]
+node dist/index.js [--site be|nl] [--anonymous] [--transport stdio|streamable-http] [--remote] [--version] [--help]
 node dist/index.js login [--remote]
 ```
 
