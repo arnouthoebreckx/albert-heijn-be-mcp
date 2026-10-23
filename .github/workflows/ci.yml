@@ -20,16 +20,9 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: npm
-      # No dependency needs install scripts; skipping them keeps a compromised one from running code here.
-      - run: npm ci --ignore-scripts
-      - name: Type-check
-        run: npm run lint
-      - name: Build
-        run: npm run build
-      - name: Validate manifest.json for the .mcpb bundle
-        env:
-          npm_config_ignore_scripts: "true"
-        run: npx -y @anthropic-ai/mcpb@2.1.2 validate manifest.json
+      - run: make setup
+      - run: make check
+      - run: make audit
       - uses: ./.github/actions/mcp-publisher
       - name: Validate server.json for the MCP Registry
         run: |
