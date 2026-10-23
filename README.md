@@ -28,6 +28,7 @@ Technically, it's a [Model Context Protocol](https://modelcontextprotocol.io) (M
 
 **Technical details**
 
+- [Anonymous mode over HTTP, and the Docker image](#anonymous-mode-over-http-and-the-docker-image)
 - [Running it on a server](#running-it-on-a-server) for ChatGPT and Claude.ai
 - [Configuration](#configuration)
 - [Tools](#tools) and [limitations](#limitations)
@@ -263,6 +264,30 @@ Set `AH_MCP_PORT` to another port, in the environment or `.env`.
 
 ---
 
+## Anonymous mode over HTTP, and the Docker image
+
+With `--anonymous` the server needs no Albert Heijn account, and it registers only the tools that work without one: `ah_search_products`, `ah_get_products`, `ah_get_bonus_offers`, `ah_get_bonus_group_products`, `ah_get_product_alternatives`, `ah_search_recipes` and `ah_get_recipe`. `ah_get_bonus_offers` with `previously_bought: true` needs an account, so it returns an error.
+
+Over Streamable HTTP, anonymous mode needs **no OAuth and no `AH_MCP_TOKEN`**: nobody logs in, and no account or personal data is behind it. It serves `/mcp` on `AH_MCP_HOST` (default `127.0.0.1`) and `AH_MCP_PORT` (default `3000`), and `GET /healthz`, which answers `200` with `ok`:
+
+```bash
+npx -y albert-heijn-be-mcp --transport streamable-http --anonymous
+```
+
+> [!WARNING]
+> Nothing authenticates a caller in this mode. Expose it **only on a private network behind a gateway** (LiteLLM, or a reverse proxy that does the authentication), never directly on the internet.
+
+The Docker image starts in this mode: `AH_SITE=be`, `--anonymous`, Streamable HTTP, listening on `0.0.0.0:3000`. It runs as a non-root user, writes nothing to disk, holds no secrets and has a healthcheck on `/healthz`:
+
+```bash
+docker build -t albert-heijn-be-mcp .
+docker run --rm --read-only -p 127.0.0.1:3000:3000 albert-heijn-be-mcp
+```
+
+Without `--anonymous`, Streamable HTTP is upstream's mode and still needs `AH_MCP_TOKEN`, see below.
+
+---
+
 ## Running it on a server
 
 Web and mobile apps such as ChatGPT and Claude.ai need the server on the internet, over Streamable HTTP with HTTPS. The endpoint is `https://your-server/mcp`.
@@ -334,7 +359,7 @@ Settings are environment variables. They can also go in a `.env` file in the wor
 | `AH_MCP_HOST` | `127.0.0.1` | Interface the HTTP server listens on. Keep the default behind a reverse proxy. |
 | `AH_MCP_PORT` | `3000` | HTTP server port. |
 | `AH_MCP_BASE_URL` | `http://localhost:3000` | Public URL of the HTTP server. Set it on a server: OAuth clients are sent to this URL to log in, and for a non-local URL the localhost-only `Host` check is turned off so a reverse proxy can forward requests. |
-| `AH_MCP_TOKEN` | — | Secret for the HTTP transport, at least 32 characters; the transport doesn't start without it. You enter it on the OAuth login page; it also signs the OAuth tokens. |
+| `AH_MCP_TOKEN` | — | Secret for the HTTP transport, at least 32 characters; the transport doesn't start without it, except with `--anonymous`. You enter it on the OAuth login page; it also signs the OAuth tokens. |
 | `AH_LOG_FILE` | — | Also append logs to this file. Logs always go to stderr. |
 
 Command-line flags:
@@ -344,7 +369,7 @@ node dist/index.js [--site be|nl] [--anonymous] [--transport stdio|streamable-ht
 node dist/index.js login [--remote]
 ```
 
-`stdio` (the default) is for local clients; `streamable-http` serves MCP at `/mcp`, with OAuth login at `/authorize`. `login` logs in to Albert Heijn from the terminal, saves the tokens and exits; with `--remote` it asks for the code instead of opening a login window.
+`stdio` (the default) is for local clients; `streamable-http` serves MCP at `/mcp`, with OAuth login at `/authorize` (with `--anonymous`: no OAuth, and `GET /healthz` answers `ok`). `login` logs in to Albert Heijn from the terminal, saves the tokens and exits; with `--remote` it asks for the code instead of opening a login window.
 
 ## Tools
 
