@@ -1,6 +1,6 @@
 # App listing
 
-[`app.json`](app.json) holds the name, descriptions and links to use wherever albert-heijn-mcp is listed or set up: connector settings in AI clients and app directories. Copy the fields each form asks for; keeping them here keeps every listing the same.
+[`app.json`](app.json) holds the name, descriptions and links to use wherever albert-heijn-be-mcp is listed or set up: connector settings in AI clients and app directories. Copy the fields each form asks for; keeping them here keeps every listing the same.
 
 | Field | Use it for |
 |---|---|
