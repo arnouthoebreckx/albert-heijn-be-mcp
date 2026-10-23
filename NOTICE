@@ -1,0 +1,10 @@
+albert-heijn-be-mcp
+https://github.com/arnouthoebreckx/albert-heijn-be-mcp
+
+This package is based on albert-heijn-mcp v1.7.1 (commit 145cd0f) by Olek Puchka,
+https://github.com/olekpuchka/albert-heijn-mcp, licensed under the Apache License,
+Version 2.0 (see LICENSE).
+
+This package changed upstream's files: it was renamed, and its code is reworked
+within this repository. It is not affiliated with or endorsed by upstream, Albert
+Heijn or Ahold Delhaize.
