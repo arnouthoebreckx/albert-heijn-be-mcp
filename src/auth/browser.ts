@@ -5,6 +5,7 @@ import { homedir, tmpdir } from "node:os";
 import { delimiter, join } from "node:path";
 import type { Readable, Writable } from "node:stream";
 import { log } from "../log.ts";
+import { site } from "../site.ts";
 import { findCode } from "./login.ts";
 
 // Logging in without copying the code by hand: AH's login page ends by redirecting to the AH app's
@@ -344,7 +345,7 @@ function redirectCode(url: string | undefined): string | undefined {
 /** Reports whether url is a page of AH's login site, which sends the browser to the appie:// link. */
 function isAhPage(url: string): boolean {
   try {
-    return new URL(url).hostname === "login.ah.nl";
+    return new URL(url).hostname === new URL(site().loginBase).hostname;
   } catch {
     return false;
   }
