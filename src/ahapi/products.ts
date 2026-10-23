@@ -1,3 +1,4 @@
+import { site } from "../site.ts";
 import type { AhClient } from "./client.ts";
 
 /** Product card from search and detail responses. */
@@ -31,15 +32,15 @@ export function productPrices(p: Product): { regular: number; bonus: number } {
   return { regular, bonus: p.isBonus && now < regular ? now : 0 };
 }
 
-/** Product page on ah.nl: /producten/product/wi<id>/<title slug>. */
+/** Product page on the site: /producten/product/wi<id>/<title slug>. */
 export function productUrl(id: number, title = ""): string {
   const slug = title
     .normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[̀-ͯ]/g, "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "");
-  return `https://www.ah.nl/producten/product/wi${id}${slug ? `/${slug}` : ""}`;
+  return `${site().web}/producten/product/wi${id}${slug ? `/${slug}` : ""}`;
 }
 
 /** URL of the first image, or "". */
