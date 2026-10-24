@@ -59,3 +59,8 @@ export class AnonymousSession {
     return token;
   }
 }
+
+/** Reports whether this client source is an anonymous session, i.e. the server runs without a login. */
+export function isAnonymous(clients: object): boolean {
+  return clients instanceof AnonymousSession;
+}

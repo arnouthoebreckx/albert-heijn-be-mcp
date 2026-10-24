@@ -36,7 +36,8 @@ export function fakeAh(handler: Handler = () => undefined): Call[] {
   return calls;
 }
 
-function route(call: Call, nextToken: () => number): Reply {
+/** What the fake AH answers; also used by the fake AH server of the end-to-end test. */
+export function route(call: Call, nextToken: () => number): Reply {
   const path = call.url.pathname;
   if (path === "/mobile-auth/v1/auth/token/anonymous") {
     return { body: { ...fixture("token-anonymous.be.json"), access_token: `ANON-${nextToken()}` } };
@@ -45,7 +46,15 @@ function route(call: Call, nextToken: () => number): Reply {
   if (path === "/mobile-services/bonuspage/v2/section") return { body: fixture("bonus-section.be.json") };
   if (path === "/mobile-services/product/search/v2") return { body: fixture("search-kipfilet.be.json") };
   if (path === "/mobile-services/product/detail/v4/fir/548746") return { body: fixture("product-detail.be.json") };
-  // Recorded on api.ah.nl: AH answers this query with no products for every Belgian group.
-  if (path === "/graphql") return { body: fixture("bonus-group-products.nl.json") };
+  if (path === "/graphql") return graphql(String(call.body?.query ?? ""));
   return { status: 404, body: { message: `no fixture for ${path}` } };
+}
+
+function graphql(query: string): Reply {
+  if (query.includes("productAlternatives")) return { body: fixture("product-alternatives.be.json") };
+  if (query.includes("recipeSearch")) return { body: fixture("recipe-search.be.json") };
+  if (query.includes("recipe(")) return { body: fixture("recipe.be.json") };
+  // Recorded on api.ah.nl: AH answers this query with no products for every Belgian group.
+  if (query.includes("bonusPromotions")) return { body: fixture("bonus-group-products.nl.json") };
+  return { status: 404, body: { message: "no fixture for this GraphQL query" } };
 }

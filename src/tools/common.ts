@@ -175,14 +175,21 @@ function modelMessage(err: Error): string | undefined {
   return undefined;
 }
 
-/** Registers a tool that needs a client. On a 401, the client source renews the token and runs it once more. */
+/**
+ * Registers a tool that needs a client. On a 401, the client source renews the token and runs it once more.
+ * `refuse` runs first, before any client or token is fetched; throwing from it turns the call into an error result.
+ */
 export function addAuthedTool<Shape extends z.ZodRawShape>(
   server: McpServer,
   ctx: ToolContext,
   def: ToolDef<Shape>,
   handler: (c: AhClient, args: Args<Shape>) => Promise<CallToolResult>,
+  refuse?: (args: Args<Shape>) => void,
 ): void {
-  addTool(server, def, (args) => ctx.clients.withClient((c) => handler(c, args)));
+  addTool(server, def, (args) => {
+    refuse?.(args);
+    return ctx.clients.withClient((c) => handler(c, args));
+  });
 }
 
 export { wrapError } from "../ahapi/index.ts";

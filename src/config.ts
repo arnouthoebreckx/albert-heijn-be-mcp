@@ -12,8 +12,10 @@ export interface HttpOptions {
   port: number;
   /** Public URL of the server. */
   baseUrl: string;
-  /** AH_MCP_TOKEN: the owner's OAuth login secret and signing key; serveHttp refuses to start without it. */
+  /** AH_MCP_TOKEN: the owner's OAuth login secret and signing key; serveHttp refuses to start without it, unless anonymous. */
   secret?: string;
+  /** Anonymous mode: no account is behind the server, so there is no OAuth and no secret. */
+  anonymous: boolean;
 }
 
 export interface Config {
@@ -81,11 +83,12 @@ export function loadConfig(argv: string[], env: NodeJS.ProcessEnv = process.env)
   const port = envInt(env, "AH_MCP_PORT", 3000);
   const baseUrl = env.AH_MCP_BASE_URL || `http://localhost:${port}`;
   if (!URL.canParse(baseUrl)) throw new Error(`AH_MCP_BASE_URL: "${baseUrl}" is not a URL (e.g. https://albert-heijn-be-mcp.example.com)`);
+  const anonymous = values.anonymous || env.AH_ANONYMOUS === "true";
   return {
     command,
     site: site as SiteName,
     apiBaseUrl,
-    anonymous: values.anonymous || env.AH_ANONYMOUS === "true",
+    anonymous,
     transport,
     // Over HTTP the user is elsewhere, so a browser opened on this machine wouldn't reach them.
     remote: values.remote || env.AH_REMOTE === "true" || transport === "streamable-http",
@@ -99,6 +102,7 @@ export function loadConfig(argv: string[], env: NodeJS.ProcessEnv = process.env)
       port,
       baseUrl,
       secret: env.AH_MCP_TOKEN || undefined,
+      anonymous,
     },
   };
 }
