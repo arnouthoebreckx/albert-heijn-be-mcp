@@ -38,6 +38,13 @@ export async function getBonusPeriods(c: AhClient): Promise<BonusPeriod[]> {
   });
 }
 
+/**
+ * ah.be's bonus categories that are not food (spec 2a, A3): what food_only drops. A category that can be
+ * either stays out of this list, so food_only keeps a household item rather than drop a food offer: baby
+ * food and nappies share "Baby en kind", vitamins and rice bars share "Gezondheid en sport".
+ */
+export const NON_FOOD_CATEGORIES: readonly string[] = ["Huishouden", "Drogisterij", "Koken, tafelen, vrije tijd"];
+
 /** The page of a group deal on the site, listing its products. */
 export function bonusGroupUrl(segmentId: string): string {
   return `${site().web}/bonus/groep/${segmentId}`;
@@ -52,6 +59,8 @@ export interface BonusGroup {
   category?: string;
   exampleFromPrice?: number;
   exampleForPrice?: number;
+  bonusStartDate?: string;
+  bonusEndDate?: string;
   products?: Product[];
 }
 
@@ -59,19 +68,21 @@ export interface BonusGroup {
 export interface BonusOffer {
   product?: Product;
   group?: BonusGroup;
+  /** The bonus category of the section the offer came from; none for the previously bought offers. */
+  category?: string;
 }
 
-async function fetchSection(c: AhClient, path: string, params: Record<string, string>): Promise<BonusOffer[]> {
+async function fetchSection(c: AhClient, path: string, params: Record<string, string>, category?: string): Promise<BonusOffer[]> {
   const query = new URLSearchParams({ application: site().application, ...params });
   const res = await c.request<{ bonusGroupOrProducts?: { product?: Product; bonusGroup?: BonusGroup }[] }>(
     `/mobile-services/bonuspage/v2/${path}?${query}`,
   );
-  return (res.bonusGroupOrProducts ?? []).map((it) => ({ product: it.product, group: it.bonusGroup }));
+  return (res.bonusGroupOrProducts ?? []).map((it) => ({ product: it.product, group: it.bonusGroup, category }));
 }
 
 /** National offers of a category; date picks the bonus period. */
 export function getBonusSection(c: AhClient, category: string, date: string): Promise<BonusOffer[]> {
-  return fetchSection(c, "section", { date, promotionType: "NATIONAL", category });
+  return fetchSection(c, "section", { date, promotionType: "NATIONAL", category }, category);
 }
 
 /** Offers on products the member bought before (AH's "Eerder gekocht"); date picks the bonus period. */
@@ -80,7 +91,7 @@ export function getPreviouslyBoughtBonus(c: AhClient, date: string): Promise<Bon
 }
 
 /** A product of the bonus search, which says which group deal it belongs to (null if none). */
-export type BonusProduct = Product & { bonusSegmentId?: number | null };
+export type BonusProduct = Product;
 
 /** AH lists about 1,800 bonus products, 18 pages of 100; more than this many pages is not a list worth reading whole. */
 const MAX_BONUS_PAGES = 40;
