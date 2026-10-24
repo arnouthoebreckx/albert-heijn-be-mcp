@@ -36,7 +36,7 @@ async function callEveryTool(client: Client): Promise<void> {
   assert.equal(offers.length, 5);
   assert.ok(offers.every((o: any) => o.bonus_mechanism));
 
-  const group = await call("ah_get_bonus_group_products", { segment_id: "815112" });
+  const group = await call("ah_get_bonus_group_products", { segment_id: "820697" });
   assert.ok(group.products.length > 0);
 
   const alternatives = await call("ah_get_product_alternatives", { product_id: 548746, limit: 3 });
