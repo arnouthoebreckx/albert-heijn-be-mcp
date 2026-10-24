@@ -4,14 +4,21 @@ on:
   push:
     tags: ["v*"]
 
+# Every job asks for what it needs; this is what a job gets that does not.
 permissions:
-  contents: write
-  # npm trusted publishing and the MCP Registry login both prove the publish came from this workflow.
-  id-token: write
+  contents: read
 
 jobs:
   release:
     runs-on: ubuntu-latest
+    permissions:
+      # The GitHub release and its files.
+      contents: write
+      # The npm package, on GitHub Packages, with the workflow's own token.
+      packages: write
+      # The build provenance of the tarball is signed with this workflow's OIDC identity.
+      id-token: write
+      attestations: write
     steps:
       - uses: actions/checkout@v7
         with:
@@ -20,7 +27,8 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
-          registry-url: https://registry.npmjs.org
+          registry-url: https://npm.pkg.github.com
+          scope: '@arnouthoebreckx'
           # npm advises against caches in release builds.
           package-manager-cache: false
       # No dependency needs install scripts; skipping them keeps a compromised one from running code here.
@@ -64,35 +72,20 @@ jobs:
           gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 ||
             gh release create "$GITHUB_REF_NAME" --title "albert-heijn-be-mcp $VERSION" --notes "" --verify-tag
           gh release upload "$GITHUB_REF_NAME" albert-heijn-be-mcp.tgz albert-heijn-be-mcp.mcpb --clobber
-      # Trusted publishing: npm accepts this workflow's OIDC identity, so no token is stored, and adds
-      # provenance. The version is only staged: it goes live once the maintainer approves it on npmjs.com
-      # (or with `npm stage approve`). A version already on npm is skipped.
-      - name: Stage on npm
+      # GitHub Packages takes the tarball with the workflow's own token: the tag is the household's approval.
+      # A version already there is skipped.
+      - name: Publish to GitHub Packages
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if [ "$(npm view "albert-heijn-be-mcp@$VERSION" version 2>/dev/null)" = "$VERSION" ]; then
-            echo "albert-heijn-be-mcp $VERSION is already on npm"
+          if [ "$(npm view "@arnouthoebreckx/albert-heijn-be-mcp@$VERSION" version 2>/dev/null)" = "$VERSION" ]; then
+            echo "@arnouthoebreckx/albert-heijn-be-mcp $VERSION is already on GitHub Packages"
           else
-            npm stage publish albert-heijn-be-mcp.tgz --access public
+            npm publish albert-heijn-be-mcp.tgz
           fi
-      - uses: ./.github/actions/mcp-publisher
-      # The registry checks that the version is on npm and its mcpName matches server.json, so this waits
-      # for the approval; if it takes longer, re-run this job from the Actions tab.
-      - name: Publish to the MCP Registry
-        timeout-minutes: 35
-        run: |
-          for _ in $(seq 60); do
-            [ "$(npm view "albert-heijn-be-mcp@$VERSION" version 2>/dev/null)" = "$VERSION" ] && break
-            echo "waiting for albert-heijn-be-mcp $VERSION to be approved on npm..."
-            sleep 30
-          done
-          [ "$(npm view "albert-heijn-be-mcp@$VERSION" version 2>/dev/null)" = "$VERSION" ] ||
-            { echo "albert-heijn-be-mcp $VERSION is not on npm yet; approve it, then re-run this job"; exit 1; }
-          ./mcp-publisher login github-oidc
-          ./mcp-publisher publish
 
-  # Builds the image for both platforms and pushes it to GHCR with the workflow's own token. It does not wait
-  # for the npm approval, so the image is there as soon as the tag is, but it checks the versions itself first.
-  # Run it again by re-running the workflow.
+  # Builds the image for both platforms and pushes it to GHCR with the workflow's own token. It checks the
+  # versions itself first. Run it again by re-running the workflow.
   image:
     runs-on: ubuntu-latest
     permissions:
