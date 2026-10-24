@@ -7,6 +7,7 @@ import { OAuth } from "./oauth.ts";
 import { isLoopbackHost, readBody } from "./request.ts";
 
 const MCP_PATH = "/mcp";
+const HEALTH_PATH = "/healthz";
 const MAX_BODY_BYTES = 4 * 1024 * 1024;
 const MIN_SECRET_LENGTH = 32;
 
@@ -15,19 +16,25 @@ function isLocalUrl(url: string): boolean {
   return URL.canParse(url) && isLoopbackHost(new URL(url).hostname);
 }
 
-/** Serves MCP at /mcp, stateless: each request gets a new server. Resolves once listening. */
+/** Serves MCP at /mcp, stateless: each request gets a new server, and /healthz answers ok. Resolves once listening. */
 export async function serveHttp(newServer: () => McpServer, opts: HttpOptions): Promise<Server> {
-  // Anyone who reaches the server acts as the logged-in AH account, and a
-  // reverse proxy can make a loopback listener public without the server knowing.
-  const { secret } = opts;
-  // Long enough not to be guessed: anyone can register an OAuth client and test guesses offline against its signed ID.
-  if (!secret || secret.length < MIN_SECRET_LENGTH) {
-    throw new Error(
-      `the HTTP transport needs AH_MCP_TOKEN of at least ${MIN_SECRET_LENGTH} characters; generate one with: openssl rand -hex 32`,
-    );
-  }
-  if (new URL(opts.baseUrl).protocol !== "https:" && !isLocalUrl(opts.baseUrl)) {
-    log.warn("AH_MCP_BASE_URL is not https: the login page would send AH_MCP_TOKEN unencrypted", { base_url: opts.baseUrl });
+  // Clients log in with OAuth; MCP requests carry the access token they get. Anonymous mode has no account
+  // behind it, so it has neither OAuth nor a secret.
+  let oauth: OAuth | undefined;
+  if (!opts.anonymous) {
+    // Anyone who reaches the server acts as the logged-in AH account, and a
+    // reverse proxy can make a loopback listener public without the server knowing.
+    const { secret } = opts;
+    // Long enough not to be guessed: anyone can register an OAuth client and test guesses offline against its signed ID.
+    if (!secret || secret.length < MIN_SECRET_LENGTH) {
+      throw new Error(
+        `the HTTP transport needs AH_MCP_TOKEN of at least ${MIN_SECRET_LENGTH} characters; generate one with: openssl rand -hex 32`,
+      );
+    }
+    if (new URL(opts.baseUrl).protocol !== "https:" && !isLocalUrl(opts.baseUrl)) {
+      log.warn("AH_MCP_BASE_URL is not https: the login page would send AH_MCP_TOKEN unencrypted", { base_url: opts.baseUrl });
+    }
+    oauth = new OAuth(opts.baseUrl, MCP_PATH, secret);
   }
 
   // DNS-rebinding protection for local-only setups. When the server is
@@ -42,9 +49,6 @@ export async function serveHttp(newServer: () => McpServer, opts: HttpOptions): 
       ])
     : undefined;
 
-  // Clients log in with OAuth; MCP requests carry the access token they get.
-  const oauth = new OAuth(opts.baseUrl, MCP_PATH, secret);
-
   const handle = async (req: IncomingMessage, res: ServerResponse) => {
     // Checked here rather than in the MCP transport, so it covers the OAuth routes too.
     if (allowedHosts && !allowedHosts.has(req.headers.host ?? "")) {
@@ -52,12 +56,16 @@ export async function serveHttp(newServer: () => McpServer, opts: HttpOptions): 
       return;
     }
     const url = new URL(req.url ?? "/", "http://localhost");
-    if (await oauth.handle(req, res, url)) return;
+    if (req.method === "GET" && url.pathname === HEALTH_PATH) {
+      res.writeHead(200, { "Content-Type": "text/plain" }).end("ok");
+      return;
+    }
+    if (oauth && (await oauth.handle(req, res, url))) return;
     if (url.pathname !== MCP_PATH) {
       res.writeHead(404).end("Not Found");
       return;
     }
-    const challenge = oauth.authenticate(req);
+    const challenge = oauth?.authenticate(req);
     if (challenge) {
       res.writeHead(401, { "WWW-Authenticate": challenge }).end("Unauthorized");
       return;

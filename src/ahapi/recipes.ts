@@ -1,3 +1,4 @@
+import { site } from "../site.ts";
 import type { AhClient } from "./client.ts";
 
 /** Allerhande recipe search result. */
@@ -35,16 +36,17 @@ export interface Recipe {
   nutritions?: Record<"energy" | "carbohydrates" | "fat" | "protein", Nutrition | null> | null;
 }
 
-const AH_WEB = new URL("https://www.ah.nl/");
+const ahWeb = () => new URL(`${site().web}/`);
 
 export function recipeUrl(id: number, slug: string): string {
-  return new URL(`/allerhande/recept/R-R${id}/${encodeURIComponent(slug)}`, AH_WEB).href;
+  return new URL(`/allerhande/recept/R-R${id}/${encodeURIComponent(slug)}`, ahWeb()).href;
 }
 
-/** href (a path from AH) on www.ah.nl, or fallback if it would lead to another site. */
+/** href (a path from AH) on the site's web host, or fallback if it would lead to another site. */
 export function ahPageUrl(href: string, fallback: string): string {
-  const url = URL.parse(href, AH_WEB.href);
-  return url?.origin === AH_WEB.origin ? url.href : fallback;
+  const web = ahWeb();
+  const url = URL.parse(href, web.href);
+  return url?.origin === web.origin ? url.href : fallback;
 }
 
 /** AH returns HTML entities in recipe text, e.g. "1&#189; teen". */

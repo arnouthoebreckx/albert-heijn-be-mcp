@@ -23,7 +23,26 @@ jobs:
       - run: make setup
       - run: make check
       - run: make audit
+      # The workflows are code too: the release one runs with write access and no one runs it before the tag.
+      - name: Lint the workflows
+        run: docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.12 -color
       - uses: ./.github/actions/mcp-publisher
       - name: Validate server.json for the MCP Registry
         run: |
           ./mcp-publisher validate
+
+  # Builds the image and runs the end-to-end test against it: read-only, with a fake AH on the host.
+  image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: make setup
+      - run: docker build -t albert-heijn-be-mcp:ci .
+      - name: End-to-end test against the image
+        run: AH_E2E_IMAGE=albert-heijn-be-mcp:ci node --test test/e2e.test.ts
