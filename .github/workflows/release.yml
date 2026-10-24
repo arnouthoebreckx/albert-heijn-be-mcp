@@ -4,14 +4,21 @@ on:
   push:
     tags: ["v*"]
 
+# Every job asks for what it needs; this is what a job gets that does not.
 permissions:
-  contents: write
-  # npm trusted publishing and the MCP Registry login both prove the publish came from this workflow.
-  id-token: write
+  contents: read
 
 jobs:
   release:
     runs-on: ubuntu-latest
+    permissions:
+      # The GitHub release and its files.
+      contents: write
+      # The npm package, on GitHub Packages, with the workflow's own token.
+      packages: write
+      # The build provenance of the tarball is signed with this workflow's OIDC identity.
+      id-token: write
+      attestations: write
     steps:
       - uses: actions/checkout@v7
         with:
@@ -20,7 +27,8 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
-          registry-url: https://registry.npmjs.org
+          registry-url: https://npm.pkg.github.com
+          scope: '@arnouthoebreckx'
           # npm advises against caches in release builds.
           package-manager-cache: false
       # No dependency needs install scripts; skipping them keeps a compromised one from running code here.
@@ -29,9 +37,16 @@ jobs:
         run: |
           version=$(node -p 'require("./package.json").version')
           [ "$GITHUB_REF_NAME" = "v$version" ] || { echo "tag $GITHUB_REF_NAME does not match version $version"; exit 1; }
-          for v in $(jq -r '.version, .packages[].version' server.json) $(jq -r .version manifest.json); do
+          for v in $(jq -r .version server.json) $(jq -r .version manifest.json); do
             [ "$v" = "$version" ] || { echo "server.json or manifest.json has version $v, package.json $version"; exit 1; }
           done
+          # The packages of server.json have no version of their own: the .mcpb URL and the image tag carry it.
+          mcpb=$(jq -r '.packages[] | select(.registryType == "mcpb") | .identifier' server.json)
+          [ "$mcpb" = "https://github.com/arnouthoebreckx/albert-heijn-be-mcp/releases/download/v$version/albert-heijn-be-mcp.mcpb" ] ||
+            { echo "the mcpb package of server.json is $mcpb, not the .mcpb of v$version"; exit 1; }
+          oci=$(jq -r '.packages[] | select(.registryType == "oci") | .identifier' server.json)
+          [ "$oci" = "ghcr.io/arnouthoebreckx/albert-heijn-be-mcp:$version" ] ||
+            { echo "the oci package of server.json is $oci, not the image of $version"; exit 1; }
           echo "VERSION=$version" >> "$GITHUB_ENV"
       - run: npm run lint
       - run: npm run build
@@ -57,35 +72,23 @@ jobs:
           gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 ||
             gh release create "$GITHUB_REF_NAME" --title "albert-heijn-be-mcp $VERSION" --notes "" --verify-tag
           gh release upload "$GITHUB_REF_NAME" albert-heijn-be-mcp.tgz albert-heijn-be-mcp.mcpb --clobber
-      # Trusted publishing: npm accepts this workflow's OIDC identity, so no token is stored, and adds
-      # provenance. The version is only staged: it goes live once the maintainer approves it on npmjs.com
-      # (or with `npm stage approve`). A version already on npm is skipped.
-      - name: Stage on npm
+      - uses: actions/attest-build-provenance@v4
+        with:
+          subject-path: albert-heijn-be-mcp.tgz
+      # GitHub Packages takes the tarball with the workflow's own token: the tag is the household's approval.
+      # A version already there is skipped.
+      - name: Publish to GitHub Packages
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if [ "$(npm view "albert-heijn-be-mcp@$VERSION" version 2>/dev/null)" = "$VERSION" ]; then
-            echo "albert-heijn-be-mcp $VERSION is already on npm"
+          if [ "$(npm view "@arnouthoebreckx/albert-heijn-be-mcp@$VERSION" version 2>/dev/null)" = "$VERSION" ]; then
+            echo "@arnouthoebreckx/albert-heijn-be-mcp $VERSION is already on GitHub Packages"
           else
-            npm stage publish albert-heijn-be-mcp.tgz --access public
+            npm publish albert-heijn-be-mcp.tgz
           fi
-      - uses: ./.github/actions/mcp-publisher
-      # The registry checks that the version is on npm and its mcpName matches server.json, so this waits
-      # for the approval; if it takes longer, re-run this job from the Actions tab.
-      - name: Publish to the MCP Registry
-        timeout-minutes: 35
-        run: |
-          for _ in $(seq 60); do
-            [ "$(npm view "albert-heijn-be-mcp@$VERSION" version 2>/dev/null)" = "$VERSION" ] && break
-            echo "waiting for albert-heijn-be-mcp $VERSION to be approved on npm..."
-            sleep 30
-          done
-          [ "$(npm view "albert-heijn-be-mcp@$VERSION" version 2>/dev/null)" = "$VERSION" ] ||
-            { echo "albert-heijn-be-mcp $VERSION is not on npm yet; approve it, then re-run this job"; exit 1; }
-          ./mcp-publisher login github-oidc
-          ./mcp-publisher publish
 
-  # Builds the image for both platforms and pushes it to GHCR with the workflow's own token. It does not wait
-  # for the npm approval, so the image is there as soon as the tag is, but it checks the versions itself first.
-  # Run it again by re-running the workflow.
+  # Builds the image for both platforms and pushes it to GHCR with the workflow's own token. It checks the
+  # versions itself first. Run it again by re-running the workflow.
   image:
     runs-on: ubuntu-latest
     permissions:
@@ -102,9 +105,16 @@ jobs:
         run: |
           version=$(node -p 'require("./package.json").version')
           [ "$GITHUB_REF_NAME" = "v$version" ] || { echo "tag $GITHUB_REF_NAME does not match version $version"; exit 1; }
-          for v in $(jq -r '.version, .packages[].version' server.json) $(jq -r .version manifest.json); do
+          for v in $(jq -r .version server.json) $(jq -r .version manifest.json); do
             [ "$v" = "$version" ] || { echo "server.json or manifest.json has version $v, package.json $version"; exit 1; }
           done
+          # The packages of server.json have no version of their own: the .mcpb URL and the image tag carry it.
+          mcpb=$(jq -r '.packages[] | select(.registryType == "mcpb") | .identifier' server.json)
+          [ "$mcpb" = "https://github.com/arnouthoebreckx/albert-heijn-be-mcp/releases/download/v$version/albert-heijn-be-mcp.mcpb" ] ||
+            { echo "the mcpb package of server.json is $mcpb, not the .mcpb of v$version"; exit 1; }
+          oci=$(jq -r '.packages[] | select(.registryType == "oci") | .identifier' server.json)
+          [ "$oci" = "ghcr.io/arnouthoebreckx/albert-heijn-be-mcp:$version" ] ||
+            { echo "the oci package of server.json is $oci, not the image of $version"; exit 1; }
           echo "VERSION=$version" >> "$GITHUB_ENV"
       # The release tag is vMAJOR.MINOR.PATCH for a release, and carries a suffix (v1.1.0-rc.1) for a pre-release, which doesn't move latest.
       - name: Tag the image from the release tag
@@ -138,3 +148,47 @@ jobs:
           subject-name: ghcr.io/arnouthoebreckx/albert-heijn-be-mcp
           subject-digest: ${{ steps.build.outputs.digest }}
           push-to-registry: true
+
+  # The registry checks the .mcpb on the release and the image on GHCR, so it runs after both. It needs the
+  # .mcpb's hash, which only exists once the release has built the file; the hash goes into this job's copy of
+  # server.json, not into the repository. Re-run this job after setting the image public.
+  registry:
+    needs: [release, image]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # The registry login proves the publish came from this workflow.
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Check tag matches package.json
+        run: |
+          version=$(node -p 'require("./package.json").version')
+          [ "$GITHUB_REF_NAME" = "v$version" ] || { echo "tag $GITHUB_REF_NAME does not match version $version"; exit 1; }
+          for v in $(jq -r .version server.json) $(jq -r .version manifest.json); do
+            [ "$v" = "$version" ] || { echo "server.json or manifest.json has version $v, package.json $version"; exit 1; }
+          done
+          # The packages of server.json have no version of their own: the .mcpb URL and the image tag carry it.
+          mcpb=$(jq -r '.packages[] | select(.registryType == "mcpb") | .identifier' server.json)
+          [ "$mcpb" = "https://github.com/arnouthoebreckx/albert-heijn-be-mcp/releases/download/v$version/albert-heijn-be-mcp.mcpb" ] ||
+            { echo "the mcpb package of server.json is $mcpb, not the .mcpb of v$version"; exit 1; }
+          oci=$(jq -r '.packages[] | select(.registryType == "oci") | .identifier' server.json)
+          [ "$oci" = "ghcr.io/arnouthoebreckx/albert-heijn-be-mcp:$version" ] ||
+            { echo "the oci package of server.json is $oci, not the image of $version"; exit 1; }
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+      - name: Download the .mcpb the release published
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release download "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --pattern albert-heijn-be-mcp.mcpb
+      - name: Add the SHA-256 of the .mcpb to server.json
+        run: |
+          sha=$(sha256sum albert-heijn-be-mcp.mcpb | cut -d ' ' -f 1)
+          jq --arg sha "$sha" '(.packages[] | select(.registryType == "mcpb")) += {fileSha256: $sha}' server.json > server.json.new
+          mv server.json.new server.json
+      - uses: ./.github/actions/mcp-publisher
+      - name: Publish to the MCP Registry
+        run: |
+          ./mcp-publisher login github-oidc
+          ./mcp-publisher publish

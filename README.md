@@ -4,26 +4,9 @@
 
 An [MCP](https://modelcontextprotocol.io) server for Albert Heijn Belgium (ah.be). It needs no account: with `--anonymous` it offers seven read-only tools (products, this week's bonus offers, bonus groups, product alternatives, recipes) and nothing that touches a login, a list or an order. It starts from the code of [olekpuchka/albert-heijn-mcp](https://github.com/olekpuchka/albert-heijn-mcp) v1.7.1 (see [`NOTICE`](NOTICE)) and does not follow upstream. A Belgian login is not part of v1. Upstream's README, for ah.nl and with a login, follows below.
 
-**npx** (stdio):
+**Claude Desktop** (`.mcpb`): download [`albert-heijn-be-mcp.mcpb`](https://github.com/arnouthoebreckx/albert-heijn-be-mcp/releases/latest/download/albert-heijn-be-mcp.mcpb) from the releases page and double-click it, or go to Settings → Extensions → Advanced settings → Install Extension… and pick the file. It starts without a login (anonymous), contains everything it needs and needs no token.
 
-```bash
-npx -y albert-heijn-be-mcp --anonymous
-```
-
-**Claude Desktop**: add this to `claude_desktop_config.json` (Settings → Developer → Edit Config). It needs [Node.js 24](https://nodejs.org). The `.mcpb` bundle on the releases page starts the logged-in mode, so use this for the no-login server.
-
-```json
-{
-  "mcpServers": {
-    "ah-be": {
-      "command": "npx",
-      "args": ["-y", "albert-heijn-be-mcp", "--anonymous"]
-    }
-  }
-}
-```
-
-**docker run** (Streamable HTTP on port 3000, `AH_SITE=be`, anonymous):
+**docker run** (Streamable HTTP on port 3000, `AH_SITE=be`, anonymous). The image needs no token:
 
 ```bash
 docker run --rm --read-only -p 127.0.0.1:3000:3000 ghcr.io/arnouthoebreckx/albert-heijn-be-mcp
@@ -40,13 +23,39 @@ mcp_servers:
     transport: "http"
 ```
 
+**npx** (stdio): GitHub's npm registry needs a token for every install, also of a public package. The image and the `.mcpb` need no token. Put these two lines in `~/.npmrc` first (the token is a classic GitHub token with the `read:packages` scope):
+
+```ini
+@arnouthoebreckx:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=<a classic GitHub token with read:packages>
+```
+
+Then run it. It needs [Node.js 24](https://nodejs.org):
+
+```bash
+npx -y @arnouthoebreckx/albert-heijn-be-mcp --anonymous
+```
+
+To start it from a desktop app instead, add this to the app's MCP settings, for example `claude_desktop_config.json` (Settings → Developer → Edit Config):
+
+```json
+{
+  "mcpServers": {
+    "ah-be": {
+      "command": "npx",
+      "args": ["-y", "@arnouthoebreckx/albert-heijn-be-mcp", "--anonymous"]
+    }
+  }
+}
+```
+
 ---
 
 <p align="center"><img src="assets/logo.png" alt="" width="128" height="128"></p>
 
 # albert-heijn-mcp
 
-[![npm](https://img.shields.io/npm/v/albert-heijn-be-mcp?color=cb3837&logo=npm)](https://www.npmjs.com/package/albert-heijn-be-mcp)
+[![Release](https://img.shields.io/github/v/release/arnouthoebreckx/albert-heijn-be-mcp?logo=github)](https://github.com/arnouthoebreckx/albert-heijn-be-mcp/releases/latest)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![Node.js 24](https://img.shields.io/badge/node-24%20LTS-339933?logo=node.js&logoColor=white)](.nvmrc)
 [![MCP](https://img.shields.io/badge/MCP-server-6E56CF)](https://modelcontextprotocol.io)
@@ -154,10 +163,10 @@ Other desktop apps that support [MCP Bundles](https://github.com/modelcontextpro
 
 ### Cursor and VS Code
 
-Install [Node.js 24 (LTS)](https://nodejs.org) first, then click:
+Install [Node.js 24 (LTS)](https://nodejs.org) and put the two `~/.npmrc` lines from the top of this page in place first (GitHub's npm registry needs a token for every install), then click:
 
-[![Install in Cursor](https://img.shields.io/badge/Cursor-Install_server-000000?logo=cursor&logoColor=white)](https://cursor.com/en/install-mcp?name=ah&config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsImFsYmVydC1oZWlqbi1iZS1tY3AiXX0%3D)
-[![Install in VS Code](https://img.shields.io/badge/VS_Code-Install_server-0098FF)](https://insiders.vscode.dev/redirect/mcp/install?name=ah&config=%7B%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22albert-heijn-be-mcp%22%5D%7D)
+[![Install in Cursor](https://img.shields.io/badge/Cursor-Install_server-000000?logo=cursor&logoColor=white)](https://cursor.com/en/install-mcp?name=ah&config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsIkBhcm5vdXRob2VicmVja3gvYWxiZXJ0LWhlaWpuLWJlLW1jcCJdfQ%3D%3D)
+[![Install in VS Code](https://img.shields.io/badge/VS_Code-Install_server-0098FF)](https://insiders.vscode.dev/redirect/mcp/install?name=ah&config=%7B%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22%40arnouthoebreckx%2Falbert-heijn-be-mcp%22%5D%7D)
 
 ### ChatGPT and Claude.ai
 
@@ -170,22 +179,22 @@ The app then opens a login page on your server: enter your `AH_MCP_TOKEN` there,
 
 ### Other apps
 
-Apps that start MCP servers as a local command need [Node.js 24 (LTS)](https://nodejs.org) and run `npx -y albert-heijn-be-mcp`, which downloads and runs the [latest version](https://www.npmjs.com/package/albert-heijn-be-mcp). Most of them take this JSON in their MCP settings:
+Apps that start MCP servers as a local command need [Node.js 24 (LTS)](https://nodejs.org) and run `npx -y @arnouthoebreckx/albert-heijn-be-mcp`, which downloads and runs the [latest version](https://github.com/arnouthoebreckx/albert-heijn-be-mcp/pkgs/npm/albert-heijn-be-mcp) from GitHub Packages; it needs the two `~/.npmrc` lines from the top of this page. Most of them take this JSON in their MCP settings:
 
 ```json
 {
   "mcpServers": {
     "ah": {
       "command": "npx",
-      "args": ["-y", "albert-heijn-be-mcp"]
+      "args": ["-y", "@arnouthoebreckx/albert-heijn-be-mcp"]
     }
   }
 }
 ```
 
-Where the settings live differs per app; see its documentation. Apps with a command line usually have an add command instead, e.g. `<client> mcp add ah -- npx -y albert-heijn-be-mcp`. It is also listed in the [MCP Registry](https://registry.modelcontextprotocol.io), which some apps install from.
+Where the settings live differs per app; see its documentation. Apps with a command line usually have an add command instead, e.g. `<client> mcp add ah -- npx -y @arnouthoebreckx/albert-heijn-be-mcp`. It is also listed in the [MCP Registry](https://registry.modelcontextprotocol.io), which some apps install from.
 
-To install it permanently instead, run `npm install --global albert-heijn-be-mcp` and use the `albert-heijn-be-mcp` command; run the same command again to update.
+To install it permanently instead, run `npm install --global @arnouthoebreckx/albert-heijn-be-mcp` and use the `albert-heijn-be-mcp` command; run the same command again to update.
 
 > [!TIP]
 > Desktop apps don't load your shell profile, so they may not find `npx` (common with nvm). Then set `command` to the output of `which npx`.
@@ -315,7 +324,7 @@ With `--anonymous` the server needs no Albert Heijn account, and it registers on
 Over Streamable HTTP, anonymous mode needs **no OAuth and no `AH_MCP_TOKEN`**: nobody logs in, and no account or personal data is behind it. It serves `/mcp` on `AH_MCP_HOST` (default `127.0.0.1`) and `AH_MCP_PORT` (default `3000`), and `GET /healthz`, which answers `200` with `ok`:
 
 ```bash
-npx -y albert-heijn-be-mcp --transport streamable-http --anonymous
+npx -y @arnouthoebreckx/albert-heijn-be-mcp --transport streamable-http --anonymous
 ```
 
 > [!WARNING]
@@ -341,7 +350,7 @@ Apps log in with OAuth: add the endpoint with OAuth (or automatic) authenticatio
 > [!IMPORTANT]
 > Anyone with `AH_MCP_TOKEN` can log in and use your Albert Heijn account. Use a long random value (`openssl rand -hex 32`). Changing it logs out every client.
 
-It runs as a hardened systemd service behind a reverse proxy, installed from npm:
+It runs as a hardened systemd service behind a reverse proxy, installed from GitHub Packages, which needs a token (the two `~/.npmrc` lines from the top of this page, for the user that runs `npm install`):
 
 1. **Prepare the server.** Install Node.js 24 and create a service user:
 
@@ -361,8 +370,8 @@ It runs as a hardened systemd service behind a reverse proxy, installed from npm
 3. **Install it** with the [service unit](deploy/albert-heijn-be-mcp.service) that comes with the package (it runs in `--remote` mode):
 
    ```bash
-   sudo npm install --global --prefix /usr/local --ignore-scripts albert-heijn-be-mcp
-   sudo install -m 644 /usr/local/lib/node_modules/albert-heijn-be-mcp/deploy/albert-heijn-be-mcp.service /etc/systemd/system/
+   sudo npm install --global --prefix /usr/local --ignore-scripts @arnouthoebreckx/albert-heijn-be-mcp
+   sudo install -m 644 /usr/local/lib/node_modules/@arnouthoebreckx/albert-heijn-be-mcp/deploy/albert-heijn-be-mcp.service /etc/systemd/system/
    sudo systemctl daemon-reload
    sudo systemctl enable --now albert-heijn-be-mcp
    ```
@@ -380,7 +389,7 @@ It runs as a hardened systemd service behind a reverse proxy, installed from npm
 To log the server in to Albert Heijn, ask a connected app to log you in and [copy the code by hand](#logging-in). Or skip the code: log in on your own computer with the login window, then copy the login to the server:
 
 ```bash
-AH_TOKENS_PATH=./server-tokens.json npx -y albert-heijn-be-mcp login
+AH_TOKENS_PATH=./server-tokens.json npx -y @arnouthoebreckx/albert-heijn-be-mcp login
 scp server-tokens.json your-server:ah-tokens.json && rm server-tokens.json
 ssh -t your-server 'sudo sh -c "install -d -o albert-heijn-be-mcp -g albert-heijn-be-mcp -m 700 /home/albert-heijn-be-mcp/.config/albert-heijn-mcp && install -o albert-heijn-be-mcp -g albert-heijn-be-mcp -m 600 $HOME/ah-tokens.json /home/albert-heijn-be-mcp/.config/albert-heijn-mcp/tokens.json.new && mv /home/albert-heijn-be-mcp/.config/albert-heijn-mcp/tokens.json.new /home/albert-heijn-be-mcp/.config/albert-heijn-mcp/tokens.json && rm $HOME/ah-tokens.json"'
 ```
@@ -546,7 +555,7 @@ npx @modelcontextprotocol/inspector node dist/index.js
 
 Before deploying a change, run a quick check against a real account: log in, search for `melk`, add a product to your shopping list and remove it again, then view your cart and orders.
 
-To release, set the new version with `npm version 1.2.3 --no-git-tag-version` and in both places in [`server.json`](server.json) and in [`manifest.json`](manifest.json), merge it to `main`, and push a tag: `git tag v1.2.3 && git push origin v1.2.3`. Only repository admins can create `v*` tags. The [release workflow](.github/workflows/release.yml) checks that the versions match, builds the package, attaches it to the GitHub release as `albert-heijn-be-mcp.tgz` together with the `albert-heijn-be-mcp.mcpb` bundle, builds the multi-arch image and pushes it to `ghcr.io/arnouthoebreckx/albert-heijn-be-mcp` with build provenance, and stages the package on npm through [trusted publishing](https://docs.npmjs.com/trusted-publishers), so no npm token is stored. Approve the staged version on npmjs.com (or with `npm stage approve`) to make it live; the workflow then updates the [MCP Registry](https://registry.modelcontextprotocol.io) entry. The release starts without notes; write them on GitHub.
+To release, set the new version with `npm version 1.2.3 --no-git-tag-version` and in `server.json` (the `version`, the `.mcpb` URL and the image tag) and `manifest.json`, merge it to `main`, and push a tag: `git tag v1.2.3 && git push origin v1.2.3`. Only repository admins can create `v*` tags. The [release workflow](.github/workflows/release.yml) checks that the versions match, builds the package, attaches it to the GitHub release as `albert-heijn-be-mcp.tgz` together with the `albert-heijn-be-mcp.mcpb` bundle, attests the build provenance of the tarball and publishes it to GitHub Packages with the workflow's own token (no npm token is stored and nothing waits for an approval), and builds the multi-arch image and pushes it to `ghcr.io/arnouthoebreckx/albert-heijn-be-mcp` with build provenance. Once the `.mcpb` and the image are published, the `registry` job adds the `.mcpb`'s SHA-256 to its copy of `server.json` and lists the `.mcpb` and the image in the [MCP Registry](https://registry.modelcontextprotocol.io) through GitHub OIDC. The registry fetches the image without a token, so set the package public (under the repository's Packages) and re-run that job if the first run failed. The release starts without notes; write them on GitHub.
 
 ## License
 

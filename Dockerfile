@@ -16,6 +16,8 @@ RUN npm ci --omit=dev --ignore-scripts
 # The runtime: anonymous mode over streamable HTTP. It holds no secrets, runs as the unprivileged node user and
 # writes nothing to disk (the token stays in memory), so `docker run --read-only` works.
 FROM node:24-slim
+# The MCP Registry checks this label against the name in server.json before it lists the image.
+LABEL io.modelcontextprotocol.server.name="io.github.arnouthoebreckx/albert-heijn-be-mcp"
 ENV NODE_ENV=production AH_SITE=be AH_MCP_HOST=0.0.0.0 AH_MCP_PORT=3000
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules

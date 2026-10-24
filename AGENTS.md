@@ -18,8 +18,9 @@ CI runs `make check` and `make audit`. Run both before every commit.
 
 - `src/` is the server: `ahapi/` (AH's API), `auth/`, `server/` (HTTP and OAuth), `tools/` (one file per tool group).
 - `test/` holds the tests, run with Node's built-in runner (`node --test`). `test/tools.test.ts` pins the tool names.
-- `manifest.json` (the `.mcpb` bundle), `server.json` (MCP Registry) and `package.json` carry the same name and
-  version. `test/identity.test.ts` checks that they agree.
+- `package.json` (the npm package, published to GitHub Packages as `@arnouthoebreckx/albert-heijn-be-mcp`),
+  `manifest.json` (the `.mcpb` bundle) and `server.json` (MCP Registry: the `.mcpb` and the image) carry the same
+  version. `test/identity.test.ts` checks that the names and versions agree.
 - `deploy/` holds the systemd unit; `.github/workflows/` holds CI and the release.
 
 ## Rules

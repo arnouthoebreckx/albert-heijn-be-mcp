@@ -3,7 +3,7 @@
   "name": "io.github.arnouthoebreckx/albert-heijn-be-mcp",
   "title": "Albert Heijn",
   "description": "Unofficial Albert Heijn server: products, bonus deals, recipes, shopping list, orders and receipts.",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "repository": {
     "url": "https://github.com/arnouthoebreckx/albert-heijn-be-mcp",
     "source": "github"
@@ -20,25 +20,25 @@
   ],
   "packages": [
     {
-      "registryType": "npm",
-      "registryBaseUrl": "https://registry.npmjs.org",
-      "identifier": "albert-heijn-be-mcp",
-      "version": "1.1.0",
-      "runtimeHint": "npx",
+      "registryType": "mcpb",
+      "identifier": "https://github.com/arnouthoebreckx/albert-heijn-be-mcp/releases/download/v1.1.1/albert-heijn-be-mcp.mcpb",
+      "transport": {
+        "type": "stdio"
+      }
+    },
+    {
+      "registryType": "oci",
+      "identifier": "ghcr.io/arnouthoebreckx/albert-heijn-be-mcp:1.1.1",
       "runtimeArguments": [
         {
-          "type": "positional",
-          "value": "-y"
-        }
-      ],
-      "packageArguments": [
-        {
-          "type": "positional",
-          "value": "--anonymous"
+          "type": "named",
+          "name": "--publish",
+          "value": "127.0.0.1:3000:3000"
         }
       ],
       "transport": {
-        "type": "stdio"
+        "type": "streamable-http",
+        "url": "http://localhost:3000/mcp"
       }
     }
   ]
