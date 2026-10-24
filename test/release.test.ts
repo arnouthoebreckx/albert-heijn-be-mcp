@@ -166,8 +166,9 @@ function runInCopy(script: string, tag: string, versions: { package?: string; se
   return { status: res.status, log: res.stdout + res.stderr, env: read(env), output: read(out) };
 }
 
-// Steps that run before the image is pushed: the check, then the tags.
-const beforePush = (): string => `${stepScript(job(release, "image"), CHECK)}\n${stepScript(job(release, "image"), TAGS)}`;
+// Steps that run before the image is pushed: the check, then the tags. The runner hands VERSION from one step to the next through GITHUB_ENV.
+const beforePush = (): string =>
+  `${stepScript(job(release, "image"), CHECK)}\nset -a; . "$GITHUB_ENV"; set +a\n${stepScript(job(release, "image"), TAGS)}`;
 
 test("the image job checks package.json, server.json and manifest.json against the tag before it pushes", () => {
   const image = job(release, "image");
