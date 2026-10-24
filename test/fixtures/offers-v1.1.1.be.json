@@ -1,0 +1,148 @@
+{
+ "offers": [
+  {
+   "bonus_segment_id": "820697",
+   "title": "Hak*",
+   "url": "https://www.ah.be/bonus/groep/820697",
+   "original_price": 2.58,
+   "bonus_price": 1.29,
+   "discount_percentage": 50,
+   "bonus_mechanism": "2e GRATIS"
+  },
+  {
+   "bonus_segment_id": "815573",
+   "title": "AH Wok- en roerbakgroente 400 gram",
+   "url": "https://www.ah.be/bonus/groep/815573",
+   "original_price": 5.98,
+   "bonus_price": 2.99,
+   "discount_percentage": 50,
+   "bonus_mechanism": "2e GRATIS"
+  },
+  {
+   "id": 51768,
+   "title": "AH Boerenkool 300 gram",
+   "url": "https://www.ah.be/producten/product/wi51768/ah-boerenkool-300-gram",
+   "original_price": 5.18,
+   "bonus_price": 2.59,
+   "discount_percentage": 50,
+   "bonus_mechanism": "2e gratis"
+  },
+  {
+   "bonus_segment_id": "819986",
+   "title": "AH Aziatische verspakketten",
+   "url": "https://www.ah.be/bonus/groep/819986",
+   "original_price": 5.99,
+   "bonus_price": 4.99,
+   "discount_percentage": 17,
+   "bonus_mechanism": "1 EURO KORTING"
+  },
+  {
+   "bonus_segment_id": "815510",
+   "title": "AH Gekoelde aardappeltjes kleinverpakkingen",
+   "url": "https://www.ah.be/bonus/groep/815510",
+   "original_price": 1.98,
+   "bonus_price": 0.99,
+   "discount_percentage": 50,
+   "bonus_mechanism": "2e GRATIS"
+  },
+  {
+   "bonus_segment_id": "815583",
+   "title": "AH Rundergehakt en scharrelkipgehakt 300 gram",
+   "url": "https://www.ah.be/bonus/groep/815583",
+   "original_price": 8.5,
+   "bonus_price": 4.25,
+   "discount_percentage": 50,
+   "bonus_mechanism": "2e GRATIS"
+  },
+  {
+   "id": 603425,
+   "title": "Kipfilet 600 gram",
+   "url": "https://www.ah.be/producten/product/wi603425/kipfilet-600-gram",
+   "original_price": 14.98,
+   "bonus_price": 11.23,
+   "discount_percentage": 25,
+   "bonus_mechanism": "2e Halve Prijs"
+  },
+  {
+   "id": 582390,
+   "title": "AH Excellent everzwijnsteak",
+   "url": "https://www.ah.be/producten/product/wi582390/ah-excellent-everzwijnsteak",
+   "original_price": 7.29,
+   "bonus_price": 5.47,
+   "discount_percentage": 25,
+   "bonus_mechanism": "25% korting"
+  },
+  {
+   "bonus_segment_id": "815452",
+   "title": "AH Gehaktballetjes in krieken- of tomatensaus",
+   "url": "https://www.ah.be/bonus/groep/815452",
+   "original_price": 6.75,
+   "bonus_price": 5.06,
+   "discount_percentage": 25,
+   "bonus_mechanism": "25% KORTING"
+  },
+  {
+   "bonus_segment_id": "815405",
+   "title": "Oîkos 480 en 900 gram",
+   "url": "https://www.ah.be/bonus/groep/815405",
+   "original_price": 7.3,
+   "bonus_price": 3.65,
+   "discount_percentage": 50,
+   "bonus_mechanism": "2e GRATIS"
+  },
+  {
+   "bonus_segment_id": "815408",
+   "title": "Blije Kip eieren",
+   "url": "https://www.ah.be/bonus/groep/815408",
+   "original_price": 6.98,
+   "bonus_price": 3.49,
+   "discount_percentage": 50,
+   "bonus_mechanism": "2e GRATIS"
+  },
+  {
+   "bonus_segment_id": "815545",
+   "title": "Optimel literpakken",
+   "url": "https://www.ah.be/bonus/groep/815545",
+   "original_price": 5.18,
+   "bonus_price": 2.59,
+   "discount_percentage": 50,
+   "bonus_mechanism": "2e GRATIS"
+  },
+  {
+   "bonus_segment_id": "822064",
+   "title": "Dash wasmiddelen",
+   "url": "https://www.ah.be/bonus/groep/822064",
+   "original_price": 28.98,
+   "bonus_price": 14.49,
+   "discount_percentage": 50,
+   "bonus_mechanism": "2e GRATIS"
+  },
+  {
+   "bonus_segment_id": "815416",
+   "title": "Mr. Propre",
+   "url": "https://www.ah.be/bonus/groep/815416",
+   "original_price": 7.98,
+   "bonus_price": 3.99,
+   "discount_percentage": 50,
+   "bonus_mechanism": "2e GRATIS"
+  },
+  {
+   "bonus_segment_id": "815551",
+   "title": "Tempo",
+   "url": "https://www.ah.be/bonus/groep/815551",
+   "original_price": 5.98,
+   "bonus_price": 2.99,
+   "discount_percentage": 50,
+   "bonus_mechanism": "2e GRATIS"
+  },
+  {
+   "bonus_segment_id": "815609",
+   "title": "Lucovitaal, Yummygums en Disney multivitaminen",
+   "url": "https://www.ah.be/bonus/groep/815609",
+   "original_price": 25.98,
+   "bonus_price": 12.99,
+   "discount_percentage": 50,
+   "bonus_mechanism": "2e GRATIS"
+  }
+ ]
+}
