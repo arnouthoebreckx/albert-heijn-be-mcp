@@ -148,3 +148,47 @@ jobs:
           subject-name: ghcr.io/arnouthoebreckx/albert-heijn-be-mcp
           subject-digest: ${{ steps.build.outputs.digest }}
           push-to-registry: true
+
+  # The registry checks the .mcpb on the release and the image on GHCR, so it runs after both. It needs the
+  # .mcpb's hash, which only exists once the release has built the file; the hash goes into this job's copy of
+  # server.json, not into the repository. Re-run this job after setting the image public.
+  registry:
+    needs: [release, image]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # The registry login proves the publish came from this workflow.
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Check tag matches package.json
+        run: |
+          version=$(node -p 'require("./package.json").version')
+          [ "$GITHUB_REF_NAME" = "v$version" ] || { echo "tag $GITHUB_REF_NAME does not match version $version"; exit 1; }
+          for v in $(jq -r .version server.json) $(jq -r .version manifest.json); do
+            [ "$v" = "$version" ] || { echo "server.json or manifest.json has version $v, package.json $version"; exit 1; }
+          done
+          # The packages of server.json have no version of their own: the .mcpb URL and the image tag carry it.
+          mcpb=$(jq -r '.packages[] | select(.registryType == "mcpb") | .identifier' server.json)
+          [ "$mcpb" = "https://github.com/arnouthoebreckx/albert-heijn-be-mcp/releases/download/v$version/albert-heijn-be-mcp.mcpb" ] ||
+            { echo "the mcpb package of server.json is $mcpb, not the .mcpb of v$version"; exit 1; }
+          oci=$(jq -r '.packages[] | select(.registryType == "oci") | .identifier' server.json)
+          [ "$oci" = "ghcr.io/arnouthoebreckx/albert-heijn-be-mcp:$version" ] ||
+            { echo "the oci package of server.json is $oci, not the image of $version"; exit 1; }
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+      - name: Download the .mcpb the release published
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release download "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --pattern albert-heijn-be-mcp.mcpb
+      - name: Add the SHA-256 of the .mcpb to server.json
+        run: |
+          sha=$(sha256sum albert-heijn-be-mcp.mcpb | cut -d ' ' -f 1)
+          jq --arg sha "$sha" '(.packages[] | select(.registryType == "mcpb")) += {fileSha256: $sha}' server.json > server.json.new
+          mv server.json.new server.json
+      - uses: ./.github/actions/mcp-publisher
+      - name: Publish to the MCP Registry
+        run: |
+          ./mcp-publisher login github-oidc
+          ./mcp-publisher publish
