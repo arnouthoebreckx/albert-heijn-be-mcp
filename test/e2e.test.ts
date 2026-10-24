@@ -36,8 +36,30 @@ async function callEveryTool(client: Client): Promise<void> {
   assert.equal(offers.length, 5);
   assert.ok(offers.every((o: any) => o.bonus_mechanism));
 
+  // M8 (spec 2a): the new inputs and outputs, on every transport.
+  const week = await call("ah_get_bonus_offers", { limit: 100, categories: ["vlees", "Huishouden"], food_only: true });
+  assert.deepEqual([week.period, week.valid_from, week.valid_until], ["current", "2026-10-19", "2026-10-25"]);
+  assert.deepEqual([...new Set(week.offers.map((o: any) => o.category))], ["Vlees"]);
+  assert.equal(week.categories.length, 5);
+  assert.ok(week.offers.every((o: any) => typeof o.pack_price === "number" && "deal_min_quantity" in o));
+
   const group = await call("ah_get_bonus_group_products", { segment_id: "820697" });
   assert.ok(group.products.length > 0);
+  const page = await call("ah_get_bonus_group_products", { segment_id: "820697", limit: 2, offset: 1, include_images: true });
+  assert.deepEqual([page.products.length, page.total], [2, 3]);
+  assert.ok(page.products.every((p: any) => p.category === "Groenten, aardappelen" && p.image_url));
+  assert.ok(group.products.every((p: any) => !("image_url" in p)));
+  const unknown = await client.callTool({ name: "ah_get_bonus_group_products", arguments: { segment_id: "999999" } });
+  assert.equal(unknown.isError, true);
+  const next = await client.callTool({ name: "ah_get_bonus_group_products", arguments: { segment_id: "820697", period: "next" } });
+  assert.equal(next.isError, true);
+
+  const details = await call("ah_get_products", { product_ids: [548746], include_images: true, include_description: true, include_ingredients: true });
+  assert.ok(details.products[0].image_url && details.products[0].description);
+  assert.match(details.products[0].ingredients, /^Ingrediënten/);
+  assert.ok(details.products[0].allergens.length > 0);
+  const images = await call("ah_search_products", { queries: ["kipfilet"], limit: 3, include_images: true });
+  assert.ok(images.searches[0].results.every((p: any) => p.image_url));
 
   const alternatives = await call("ah_get_product_alternatives", { product_id: 548746, limit: 3 });
   assert.ok(alternatives.products.length > 0);
