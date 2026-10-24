@@ -29,9 +29,16 @@ jobs:
         run: |
           version=$(node -p 'require("./package.json").version')
           [ "$GITHUB_REF_NAME" = "v$version" ] || { echo "tag $GITHUB_REF_NAME does not match version $version"; exit 1; }
-          for v in $(jq -r '.version, .packages[].version' server.json) $(jq -r .version manifest.json); do
+          for v in $(jq -r .version server.json) $(jq -r .version manifest.json); do
             [ "$v" = "$version" ] || { echo "server.json or manifest.json has version $v, package.json $version"; exit 1; }
           done
+          # The packages of server.json have no version of their own: the .mcpb URL and the image tag carry it.
+          mcpb=$(jq -r '.packages[] | select(.registryType == "mcpb") | .identifier' server.json)
+          [ "$mcpb" = "https://github.com/arnouthoebreckx/albert-heijn-be-mcp/releases/download/v$version/albert-heijn-be-mcp.mcpb" ] ||
+            { echo "the mcpb package of server.json is $mcpb, not the .mcpb of v$version"; exit 1; }
+          oci=$(jq -r '.packages[] | select(.registryType == "oci") | .identifier' server.json)
+          [ "$oci" = "ghcr.io/arnouthoebreckx/albert-heijn-be-mcp:$version" ] ||
+            { echo "the oci package of server.json is $oci, not the image of $version"; exit 1; }
           echo "VERSION=$version" >> "$GITHUB_ENV"
       - run: npm run lint
       - run: npm run build
@@ -102,9 +109,16 @@ jobs:
         run: |
           version=$(node -p 'require("./package.json").version')
           [ "$GITHUB_REF_NAME" = "v$version" ] || { echo "tag $GITHUB_REF_NAME does not match version $version"; exit 1; }
-          for v in $(jq -r '.version, .packages[].version' server.json) $(jq -r .version manifest.json); do
+          for v in $(jq -r .version server.json) $(jq -r .version manifest.json); do
             [ "$v" = "$version" ] || { echo "server.json or manifest.json has version $v, package.json $version"; exit 1; }
           done
+          # The packages of server.json have no version of their own: the .mcpb URL and the image tag carry it.
+          mcpb=$(jq -r '.packages[] | select(.registryType == "mcpb") | .identifier' server.json)
+          [ "$mcpb" = "https://github.com/arnouthoebreckx/albert-heijn-be-mcp/releases/download/v$version/albert-heijn-be-mcp.mcpb" ] ||
+            { echo "the mcpb package of server.json is $mcpb, not the .mcpb of v$version"; exit 1; }
+          oci=$(jq -r '.packages[] | select(.registryType == "oci") | .identifier' server.json)
+          [ "$oci" = "ghcr.io/arnouthoebreckx/albert-heijn-be-mcp:$version" ] ||
+            { echo "the oci package of server.json is $oci, not the image of $version"; exit 1; }
           echo "VERSION=$version" >> "$GITHUB_ENV"
       # The release tag is vMAJOR.MINOR.PATCH for a release, and carries a suffix (v1.1.0-rc.1) for a pre-release, which doesn't move latest.
       - name: Tag the image from the release tag
