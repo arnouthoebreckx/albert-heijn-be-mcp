@@ -23,7 +23,7 @@
     "entry_point": "dist/index.js",
     "mcp_config": {
       "command": "node",
-      "args": ["${__dirname}/dist/index.js"]
+      "args": ["${__dirname}/dist/index.js", "--anonymous"]
     }
   },
   "keywords": ["albert heijn", "ah", "groceries", "supermarket", "bonus", "recipes", "allerhande", "shopping list", "netherlands"],
