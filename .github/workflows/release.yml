@@ -72,6 +72,9 @@ jobs:
           gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 ||
             gh release create "$GITHUB_REF_NAME" --title "albert-heijn-be-mcp $VERSION" --notes "" --verify-tag
           gh release upload "$GITHUB_REF_NAME" albert-heijn-be-mcp.tgz albert-heijn-be-mcp.mcpb --clobber
+      - uses: actions/attest-build-provenance@v4
+        with:
+          subject-path: albert-heijn-be-mcp.tgz
       # GitHub Packages takes the tarball with the workflow's own token: the tag is the household's approval.
       # A version already there is skipped.
       - name: Publish to GitHub Packages
