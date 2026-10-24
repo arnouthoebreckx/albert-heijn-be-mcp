@@ -11,7 +11,7 @@ import {
   searchProducts,
 } from "../ahapi/index.ts";
 import { addAuthedTool, nonFatal, orDefault, parallel, structured, type ToolContext, withRetry } from "./common.ts";
-import { detailProduct, productDetail, productSummary, summarizeProduct } from "./views.ts";
+import { detailProduct, productDetail, productRow, productRowView, productSummary, summarizeProduct } from "./views.ts";
 
 const MAX_QUERIES = 10;
 const MAX_PRODUCT_IDS = 20;
@@ -66,13 +66,16 @@ export function registerProductTools(server: McpServer, ctx: ToolContext): void 
         "Pass one or more queries (max 10) to search for several products in one call. " +
         "Prefer Dutch search terms for best results: " +
         "e.g. 'melk' (milk), 'kaas' (cheese), 'brood' (bread), 'kip' (chicken), 'appel' (apple). " +
-        "Set bonus=true to return only products currently on promotion. " +
+        "Set bonus=true to return only products currently on promotion; this also finds product promotions, " +
+        "such as volume discounts ('5% volume voordeel' on a 2-pack), that ah_get_bonus_offers does not list. " +
         "filters narrows results to products matching all of them, e.g. ['organic', 'gluten_free']: " +
         "organic, prijsfavoriet (AH's budget label), new, frozen, a diet (vegan, vegetarian, low_sugar, low_fat, low_salt), " +
         "or free from an allergen (gluten_free, lactose_free, milk_free, egg_free, nut_free, peanut_free, soy_free, " +
         "fish_free, shellfish_free, sesame_free, celery_free, mustard_free, lupin_free, sulphite_free). " +
         "sort orders results: relevance (default), price_low_high, price_high_low, most_bought (by this user), nutriscore. " +
-        "Returns, per query: id, title, price, bonus_price, unit, is_bonus, bonus_mechanism, image_url.",
+        "Returns, per query: id, title, price, bonus_price, unit, is_bonus, bonus_mechanism, " +
+        "and the price fields pack_price, deal_min_quantity, deal_total, deal_price_per_pack, unit_price, unit_price_unit " +
+        "(image_url only with include_images=true).",
       input: {
         queries: z
           .array(z.string())
@@ -91,19 +94,20 @@ export function registerProductTools(server: McpServer, ctx: ToolContext): void 
           .enum(Object.keys(SORTS) as [Sort, ...Sort[]])
           .optional()
           .describe("Result order (default relevance)"),
+        include_images: z.boolean().optional().describe("Include image_url in each result (default false)"),
       },
       output: {
-        searches: z.array(z.object({ query: z.string(), results: z.array(productSummary), error: z.string().optional() })),
+        searches: z.array(z.object({ query: z.string(), results: z.array(productRow), error: z.string().optional() })),
       },
     },
-    async (c, { queries, limit, bonus, filters, sort }) => {
+    async (c, { queries, limit, bonus, filters, sort, include_images }) => {
       const qs = queries.filter(Boolean).slice(0, MAX_QUERIES);
       if (qs.length === 0) throw new Error("provide at least one search query");
       const perQuery = Math.min(orDefault(limit, qs.length > 1 ? 5 : 10), 30);
 
       const results = qs.map((query) => ({
         query,
-        results: [] as ReturnType<typeof summarizeProduct>[],
+        results: [] as ReturnType<typeof productRowView>[],
         error: undefined as string | undefined,
       }));
       const opts: SearchOptions = {
@@ -115,7 +119,7 @@ export function registerProductTools(server: McpServer, ctx: ToolContext): void 
         const r = results[i]!;
         await nonFatal(
           async () => {
-            r.results = (await search(ctx, c, r.query, perQuery, opts)).map(summarizeProduct);
+            r.results = (await search(ctx, c, r.query, perQuery, opts)).map((p) => productRowView(p, { images: include_images }));
           },
           (err) => {
             r.error = (err as Error).message;
@@ -135,20 +139,26 @@ export function registerProductTools(server: McpServer, ctx: ToolContext): void 
       kind: "readOnly",
       description:
         "Get detailed information about one or more Albert Heijn products by ID (max 20). " +
-        "Returns title, brand, category, description, price, unit size, bonus info, NutriScore, property icons. " +
-        "Set include_nutritional_info=true to also return calories, fat, protein, etc. " +
+        "Returns title, brand, category, price, the price fields (pack_price, deal_min_quantity, deal_total, " +
+        "deal_price_per_pack, unit_price, unit_price_unit), unit size, bonus info, NutriScore, property icons. " +
+        "Set include_nutritional_info=true to also return calories, fat, protein, etc.; " +
+        "include_ingredients=true for the ingredients text and the allergens (what it contains or may contain); " +
+        "include_description=true for the description; include_images=true for image_url. " +
         "Get product IDs from ah_search_products.",
       input: {
         product_ids: z
           .array(z.number().int())
           .describe("Product IDs from ah_search_products, e.g. [123456] or [123456, 789012] (max 20)"),
         include_nutritional_info: z.boolean().optional().describe("Include nutritional values (default false)"),
+        include_ingredients: z.boolean().optional().describe("Include ingredients (text) and allergens (list), where AH has them (default false)"),
+        include_description: z.boolean().optional().describe("Include the description (default false)"),
+        include_images: z.boolean().optional().describe("Include image_url (default false)"),
       },
       output: {
         products: z.array(z.union([productDetail, z.object({ id: z.number(), error: z.string() })])),
       },
     },
-    async (c, { product_ids, include_nutritional_info }) => {
+    async (c, { product_ids, include_nutritional_info, include_ingredients, include_description, include_images }) => {
       const ids = product_ids.filter((id) => id > 0).slice(0, MAX_PRODUCT_IDS);
       if (ids.length === 0) throw new Error("provide at least one product ID");
 
@@ -162,7 +172,7 @@ export function registerProductTools(server: McpServer, ctx: ToolContext): void 
             const nutrition = include_nutritional_info
               ? await ctx.nutrition.getOrLoad(key, () => withRetry("ah_get_products", () => getNutrition(c, id)))
               : undefined;
-            return detailProduct(p, nutrition);
+            return detailProduct(p, nutrition, { images: include_images, description: include_description, ingredients: include_ingredients });
           },
           (err) => ({ id, error: (err as Error).message }),
         );

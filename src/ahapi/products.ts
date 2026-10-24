@@ -19,7 +19,22 @@ export interface Product {
   priceBeforeBonus?: number;
   isBonus?: boolean;
   bonusMechanism?: string | null;
+  /** First and last day of the deal (YYYY-MM-DD). */
+  bonusStartDate?: string | null;
+  bonusEndDate?: string | null;
+  /** The group deal this product is in, in the bonus search. */
+  bonusSegmentId?: number | null;
+  /** AH sells this row as one item made of several, e.g. a 2-pack. */
+  isVirtualBundle?: boolean;
   isOrderable?: boolean;
+  /** Only from getProduct: the ingredient text, and what AH says the product contains or may contain. */
+  ingredients?: string;
+  allergens?: Allergen[];
+}
+
+export interface Allergen {
+  name: string;
+  level: "contains" | "may_contain";
 }
 
 /**
@@ -131,9 +146,25 @@ export async function searchProducts(c: AhClient, query: string, size: number, o
   return products.slice(0, size);
 }
 
+interface TradeItem {
+  foodAndBeverageIngredientStatement?: string;
+  allergenInformation?: { items?: { typeCode?: { label?: string }; levelOfContainmentCode?: { value?: string } }[] }[];
+}
+
+const ALLERGEN_LEVELS: Record<string, Allergen["level"]> = { CONTAINS: "contains", MAY_CONTAIN: "may_contain" };
+
+/** The product card, with the ingredients and allergens of the same response (undefined where AH has none). */
 export async function getProduct(c: AhClient, id: number): Promise<Product> {
-  const res = await c.request<{ productCard: Product }>(`/mobile-services/product/detail/v4/fir/${id}`);
-  return res.productCard;
+  const res = await c.request<{ productCard: Product; tradeItem?: TradeItem }>(`/mobile-services/product/detail/v4/fir/${id}`);
+  const trade = res.tradeItem;
+  // Only what the product contains or may contain; "does not contain" entries are not allergens of it.
+  const allergens = trade?.allergenInformation?.flatMap((a) =>
+    (a.items ?? []).flatMap((it) => {
+      const level = ALLERGEN_LEVELS[it.levelOfContainmentCode?.value ?? ""];
+      return level && it.typeCode?.label ? [{ name: it.typeCode.label, level }] : [];
+    }),
+  );
+  return { ...res.productCard, ingredients: trade?.foodAndBeverageIngredientStatement || undefined, allergens };
 }
 
 /** Returns products in the order of ids. */
