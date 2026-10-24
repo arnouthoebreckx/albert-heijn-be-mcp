@@ -79,8 +79,39 @@ export function getPreviouslyBoughtBonus(c: AhClient, date: string): Promise<Bon
   return fetchSection(c, "section/previously-bought", { date });
 }
 
-/** Products of a group deal. */
-export async function getBonusGroupProducts(c: AhClient, groupId: string, period: BonusPeriod): Promise<Product[]> {
+/** A product of the bonus search, which says which group deal it belongs to (null if none). */
+export type BonusProduct = Product & { bonusSegmentId?: number | null };
+
+/** AH lists about 1,800 bonus products, 18 pages of 100; more than this many pages is not a list worth reading whole. */
+const MAX_BONUS_PAGES = 40;
+
+/** Every product on bonus now, from the bonus-filtered search, 100 a request. The search has no way to ask for another week. */
+export async function getBonusProducts(c: AhClient): Promise<BonusProduct[]> {
+  const page = (n: number) => {
+    const query = new URLSearchParams({ query: "", page: String(n), size: "100", sortOn: "RELEVANCE", filters: "bonus=Bonus" });
+    return c.request<{ page?: { totalPages?: number }; products?: BonusProduct[] }>(`/mobile-services/product/search/v2?${query}`);
+  };
+  const first = await page(0);
+  const pages = first.page?.totalPages ?? 1;
+  if (pages > MAX_BONUS_PAGES) throw new Error(`AH lists ${pages} pages of bonus products, more than the ${MAX_BONUS_PAGES} this server reads`);
+  const products = first.products ?? [];
+  for (let n = 1; n < pages; n++) products.push(...((await page(n)).products ?? []));
+  return products;
+}
+
+/**
+ * Products of a group deal. On ah.be AH's group query returns nothing, so the group is the products of the
+ * bonus search whose bonusSegmentId is its id; bonusProducts lets the caller cache that list.
+ */
+export async function getBonusGroupProducts(
+  c: AhClient,
+  groupId: string,
+  period: BonusPeriod,
+  bonusProducts: () => Promise<BonusProduct[]> = () => getBonusProducts(c),
+): Promise<BonusProduct[]> {
+  if (site().name === "be") {
+    return (await bonusProducts()).filter((p) => String(p.bonusSegmentId) === groupId).map((p) => ({ ...p, isBonus: true }));
+  }
   const query = `query BonusGroupProducts($id: String, $start: String, $end: String) {
   bonusPromotions(input: {id: $id, periodStart: $start, periodEnd: $end}) {
     products { ${GRAPHQL_PRODUCT_FIELDS} }

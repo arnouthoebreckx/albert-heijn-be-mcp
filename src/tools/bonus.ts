@@ -7,17 +7,23 @@ import {
   type BonusPeriod,
   getBonusGroupProducts,
   getBonusPeriods,
+  getBonusProducts,
   getBonusSection,
   getPreviouslyBoughtBonus,
   productUrl,
 } from "../ahapi/index.ts";
 import { isAnonymous } from "../auth/anonymous.ts";
 import { log } from "../log.ts";
+import { site } from "../site.ts";
 import { addAuthedTool, nonFatal, orDefault, parallel, structured, type ToolContext, withRetry, wrapError } from "./common.ts";
 import { productSummary, summarizeProduct } from "./views.ts";
 
 /** previously_bought is AH's "Eerder gekocht": it belongs to an account. */
 const PREVIOUSLY_BOUGHT_NEEDS_LOGIN = "previously_bought needs a logged-in Albert Heijn account; this server runs without one";
+
+const NEXT_GROUPS_UNAVAILABLE =
+  "The products of a group in next week's bonus are not available on ah.be: AH lists only this week's bonus products there. " +
+  "Ask again with period='current' once the bonus week has started.";
 
 const period = z.enum(["current", "next"]).optional();
 
@@ -125,9 +131,12 @@ export function registerBonusTools(server: McpServer, ctx: ToolContext): void {
     },
     async (c, args) => {
       if (!args.segment_id) throw new Error("segment_id is required");
+      // The bonus search of ah.be lists this week only, so next week's groups can't be built there.
+      if (args.period === "next" && site().name === "be") return structured({ products: [] }, NEXT_GROUPS_UNAVAILABLE);
       const p = await bonusPeriod(ctx, c, args.period);
       if (typeof p === "string") return structured({ products: [] }, p);
-      return structured({ products: (await getBonusGroupProducts(c, args.segment_id, p)).map(summarizeProduct) });
+      const bonusProducts = () => ctx.searches.getOrLoad(`bonus:${p.start}`, () => getBonusProducts(c));
+      return structured({ products: (await getBonusGroupProducts(c, args.segment_id, p, bonusProducts)).map(summarizeProduct) });
     },
   );
 }
