@@ -35,8 +35,8 @@ test("bonus offers carry the mechanism and www.ah.be links", async () => {
 });
 
 test("a bonus group lists its products with www.ah.be links", async () => {
-  const { products } = await call("ah_get_bonus_group_products", { segment_id: "815112" });
-  assert.equal(products.length, 13);
+  const { products } = await call("ah_get_bonus_group_products", { segment_id: "820697" });
+  assert.equal(products.length, 3);
   assert.ok(products.every((p: any) => p.is_bonus && p.url.startsWith("https://www.ah.be/producten/product/wi")));
 });
 
