@@ -23,6 +23,9 @@ jobs:
       - run: make setup
       - run: make check
       - run: make audit
+      # The workflows are code too: the release one runs with write access and no one runs it before the tag.
+      - name: Lint the workflows
+        run: docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.12 -color
       - uses: ./.github/actions/mcp-publisher
       - name: Validate server.json for the MCP Registry
         run: |
