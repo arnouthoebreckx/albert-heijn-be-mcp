@@ -84,18 +84,22 @@ test("on be, a bonus list of more than 40 pages is refused with an error, after 
 
 test("on nl, upstream's group query is still used and the search is not", async () => {
   configureSite("nl");
-  const { res, calls } = await callTool({ segment_id: "815112" });
+  // M8 (spec 2a, A5): the group must be in the week's offers; the fake AH's offers are Belgian, so this one adds group 815112.
+  const offers = (call: Call) =>
+    call.url.pathname === "/mobile-services/bonuspage/v2/section"
+      ? { body: { sectionType: "AH", sectionDescription: "Zuivel, eieren", bonusGroupOrProducts: [{ bonusGroup: { id: "815112", segmentId: 815112, segmentDescription: "Dutch group", discountDescription: "2e GRATIS", category: "Zuivel, eieren", products: [] } }] } }
+      : undefined;
+  const { res, calls } = await callTool({ segment_id: "815112" }, offers);
   assert.equal(groupQueries(calls).length, 1);
   assert.equal(bonusSearches(calls).length, 0);
   assert.equal((res.structuredContent as any).products.length, 13);
 });
 
-// Done-when 2.
-test("on be, period next returns an empty list with an explanation, and asks AH for no products", async () => {
+// Done-when 2. M8 (spec 2a, A5) turns the message into an error: the sentence stays, `isError` is new.
+test("on be, period next is an error with an explanation, and asks AH for no products", async () => {
   configureSite("be");
   const { res, calls } = await callTool({ segment_id: "820697", period: "next" });
-  assert.notEqual(res.isError, true);
-  assert.deepEqual((res.structuredContent as any).products, []);
+  assert.equal(res.isError, true);
   const text = (res.content as { text: string }[])[0]!.text;
   assert.match(text, /next week/i);
   assert.match(text, /ah\.be/);

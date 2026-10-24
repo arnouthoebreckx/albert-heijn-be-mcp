@@ -1,5 +1,6 @@
 import { mock } from "node:test";
-import { readJson } from "./helpers.ts";
+import { existsSync } from "node:fs";
+import { readJson, root } from "./helpers.ts";
 
 export interface Call {
   method: string;
@@ -43,7 +44,7 @@ export function route(call: Call, nextToken: () => number): Reply {
     return { body: { ...fixture("token-anonymous.be.json"), access_token: `ANON-${nextToken()}` } };
   }
   if (path === "/mobile-services/bonuspage/v3/metadata") return { body: fixture("bonus-metadata.be.json") };
-  if (path === "/mobile-services/bonuspage/v2/section") return { body: fixture("bonus-section.be.json") };
+  if (path === "/mobile-services/bonuspage/v2/section") return { body: section(call.url.searchParams.get("category") ?? "") };
   if (path === "/mobile-services/product/search/v2") {
     // The bonus-filtered search, which lists a group's products on ah.be: two recorded pages of 100 (trimmed).
     if (call.url.searchParams.get("filters") === "bonus=Bonus") return { body: fixture(`search-bonus-p${call.url.searchParams.get("page")}.be.json`) };
@@ -52,6 +53,12 @@ export function route(call: Call, nextToken: () => number): Reply {
   if (path === "/mobile-services/product/detail/v4/fir/548746") return { body: fixture("product-detail.be.json") };
   if (path === "/graphql") return graphql(String(call.body?.query ?? ""));
   return { status: 404, body: { message: `no fixture for ${path}` } };
+}
+
+/** The recorded section of a category; the categories without a recorded section of their own get the first one. */
+function section(category: string): unknown {
+  const slug = category.toLowerCase().replace(/[^a-z]+/g, "-").replace(/^-|-$/g, "");
+  return existsSync(`${root}test/fixtures/bonus-section.${slug}.be.json`) ? fixture(`bonus-section.${slug}.be.json`) : fixture("bonus-section.be.json");
 }
 
 function graphql(query: string): Reply {
