@@ -3,7 +3,7 @@
   "name": "io.github.arnouthoebreckx/albert-heijn-be-mcp",
   "title": "Albert Heijn",
   "description": "Unofficial Albert Heijn server: products, bonus deals, recipes, shopping list, orders and receipts.",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "repository": {
     "url": "https://github.com/arnouthoebreckx/albert-heijn-be-mcp",
     "source": "github"
@@ -23,7 +23,7 @@
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "albert-heijn-be-mcp",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "runtimeHint": "npx",
       "runtimeArguments": [
         {
