@@ -11,7 +11,7 @@ import { read, readJson, root, stepScript, workflowJob } from "./helpers.ts";
 
 const NAME = "albert-heijn-be-mcp";
 const SCOPED_NAME = `@arnouthoebreckx/${NAME}`;
-const VERSION = "1.1.1";
+const VERSION = "1.2.0";
 const MCP_NAME = "io.github.arnouthoebreckx/albert-heijn-be-mcp";
 const LABEL = "io.modelcontextprotocol.server.name";
 const GITHUB_PACKAGES = "https://npm.pkg.github.com";
@@ -36,7 +36,7 @@ function permissions(jobText: string): Record<string, string> {
 }
 
 // Done-when 2 (spec section 6).
-test("npm pack names the scoped package at 1.1.1", () => {
+test("npm pack names the scoped package at 1.2.0", () => {
   const [packed] = JSON.parse(execFileSync("npm", ["pack", "--dry-run", "--json", "--ignore-scripts"], { cwd: root, encoding: "utf8" }));
   assert.equal(packed.name, SCOPED_NAME);
   assert.equal(packed.version, VERSION);

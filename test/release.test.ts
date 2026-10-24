@@ -11,9 +11,9 @@ import { read, readJson, root, stepScript, workflowJob as job } from "./helpers.
 
 // Milestone M4 (spec sections 6, 8 and 9): what the household's tag will publish. The tag, the publishing
 // and the checks against the published package and image are not done here. M7 moves the version to 1.1.1,
-// the package to GitHub Packages and the registry entry to the .mcpb and the image.
+// the package to GitHub Packages and the registry entry to the .mcpb and the image; M8 moves it to 1.2.0.
 
-const VERSION = "1.1.1";
+const VERSION = "1.2.0";
 
 const NAME = "albert-heijn-be-mcp";
 const IMAGE = `ghcr.io/arnouthoebreckx/${NAME}`;
@@ -57,7 +57,7 @@ test("CI lints the workflows with actionlint", () => {
   assert.match(read(".github/workflows/ci.yml"), /actionlint/);
 });
 
-// Done-when 2 (spec sections 6 and 8); M6 done-when 5 moves it to 1.1.0, M7 done-when 1 to 1.1.1. Since M7
+// Done-when 2 (spec sections 6 and 8); M6 done-when 5 moves it to 1.1.0, M7 done-when 1 to 1.1.1, M8 done-when 14 to 1.2.0. Since M7
 // server.json lists no npm package, so none of its packages has a `version`: the .mcpb URL and the image tag carry it.
 test(`the three versions, and the root of package-lock.json, are ${VERSION}`, () => {
   assert.equal(readJson("package.json").version, VERSION);
@@ -178,7 +178,7 @@ test("the image job checks package.json, server.json and manifest.json against t
 
 test("latest moves only for a tag of the form vMAJOR.MINOR.PATCH", () => {
   const stable = runInCopy(beforePush(), `v${VERSION}`, {});
-  assert.match(stable.output, new RegExp(`tags=.*${IMAGE}:1\\.1\\.1\\b`));
+  assert.match(stable.output, new RegExp(`tags=.*${IMAGE}:1\\.2\\.0\\b`));
   assert.match(stable.output, new RegExp(`${IMAGE}:latest`));
   for (const version of [`${VERSION}-rc.1`, `${VERSION}+build.5`]) {
     const pre = runInCopy(beforePush(), `v${version}`, { package: version, server: version, manifest: version });
