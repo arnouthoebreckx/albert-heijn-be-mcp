@@ -7,10 +7,13 @@ import { test } from "node:test";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { cleanEnv } from "./serverProcess.ts";
-import { read, readJson, root } from "./helpers.ts";
+import { read, readJson, root, stepScript, workflowJob as job } from "./helpers.ts";
 
-// Milestone M4 (spec sections 6, 8 and 9): what the household's tag `v1.0.0` will publish. The tag, the
-// publishing and the checks against the published package and image are not done here.
+// Milestone M4 (spec sections 6, 8 and 9): what the household's tag will publish. The tag, the publishing
+// and the checks against the published package and image are not done here. M7 moves the version to 1.1.1,
+// the package to GitHub Packages and the registry entry to the .mcpb and the image.
+
+const VERSION = "1.1.1";
 
 const NAME = "albert-heijn-be-mcp";
 const IMAGE = `ghcr.io/arnouthoebreckx/${NAME}`;
@@ -18,31 +21,6 @@ const UPSTREAM_LINE =
   "Unofficial. Not affiliated with Albert Heijn or Ahold Delhaize. Based on olekpuchka/albert-heijn-mcp v1.7.1, for ah.be, without a login.";
 
 const release = read(".github/workflows/release.yml");
-
-/** The lines of one job in a workflow: from `  <job>:` to the next job at the same indent. */
-function job(workflow: string, name: string): string {
-  const lines = workflow.split("\n");
-  const start = lines.findIndex((l) => l === `  ${name}:`);
-  assert.notEqual(start, -1, `no job ${name}`);
-  const end = lines.findIndex((l, i) => i > start && /^ {2}\S/.test(l));
-  return lines.slice(start, end === -1 ? undefined : end).join("\n");
-}
-
-/** The `run: |` script of the step with this name. */
-function stepScript(workflow: string, name: string): string {
-  const lines = workflow.split("\n");
-  const at = lines.findIndex((l) => l.trim() === `- name: ${name}`);
-  assert.notEqual(at, -1, `no step ${name}`);
-  const run = lines.findIndex((l, i) => i > at && l.trim() === "run: |");
-  assert.notEqual(run, -1, `step ${name} has no run script`);
-  const indent = lines[run + 1]!.search(/\S/);
-  const script: string[] = [];
-  for (const l of lines.slice(run + 1)) {
-    if (l.trim() !== "" && l.search(/\S/) < indent) break;
-    script.push(l.slice(indent));
-  }
-  return script.join("\n");
-}
 
 // Done-when 1 (spec section 8, Added).
 test("the release workflow has a job that pushes the image for both platforms with GITHUB_TOKEN", () => {
@@ -56,7 +34,7 @@ test("the release workflow has a job that pushes the image for both platforms wi
   assert.match(image, /registry: ghcr\.io/);
   assert.match(image, /password: \$\{\{ secrets\.GITHUB_TOKEN \}\}/);
   assert.match(image, /packages: write/);
-  assert.deepEqual([...release.matchAll(/secrets\.(\w+)/g)].map((m) => m[1]), ["GITHUB_TOKEN"], "the workflow stores no other secret");
+  assert.deepEqual([...new Set([...release.matchAll(/secrets\.(\w+)/g)].map((m) => m[1]))], ["GITHUB_TOKEN"], "the workflow stores no other secret");
 });
 
 test("the image is tagged with the version of the release tag, and latest", () => {
@@ -79,29 +57,30 @@ test("CI lints the workflows with actionlint", () => {
   assert.match(read(".github/workflows/ci.yml"), /actionlint/);
 });
 
-// Done-when 2 (spec sections 6 and 8); M6 done-when 5 moves it to 1.1.0.
-test("the three versions, and the root of package-lock.json, are 1.1.0", () => {
-  assert.equal(readJson("package.json").version, "1.1.0");
-  assert.equal(readJson("server.json").version, "1.1.0");
-  assert.equal(readJson("manifest.json").version, "1.1.0");
-  assert.deepEqual(readJson("server.json").packages.map((p: { version: string }) => p.version), ["1.1.0"]);
-  assert.equal(readJson("package-lock.json").version, "1.1.0");
-  assert.equal(readJson("package-lock.json").packages[""].version, "1.1.0");
+// Done-when 2 (spec sections 6 and 8); M6 done-when 5 moves it to 1.1.0, M7 done-when 1 to 1.1.1. Since M7
+// server.json lists no npm package, so none of its packages has a `version`: the .mcpb URL and the image tag carry it.
+test(`the three versions, and the root of package-lock.json, are ${VERSION}`, () => {
+  assert.equal(readJson("package.json").version, VERSION);
+  assert.equal(readJson("server.json").version, VERSION);
+  assert.equal(readJson("manifest.json").version, VERSION);
+  assert.deepEqual(readJson("server.json").packages.filter((p: { version?: string }) => p.version !== undefined), []);
+  assert.equal(readJson("package-lock.json").version, VERSION);
+  assert.equal(readJson("package-lock.json").packages[""].version, VERSION);
 });
 
-test("the release workflow's version check passes for the tag v1.1.0, and fails for another tag", () => {
+test(`the release workflow's version check passes for the tag v${VERSION}, and fails for another tag`, () => {
   const script = stepScript(release, "Check tag matches package.json");
   const check = (tag: string) => {
     const envFile = join(mkdtempSync(join(tmpdir(), "ah-be-mcp-")), "env");
     const res = spawnSync("bash", ["-ec", script], { cwd: root, env: { PATH: process.env.PATH ?? "", GITHUB_REF_NAME: tag, GITHUB_ENV: envFile }, encoding: "utf8" });
     return { status: res.status, out: res.stdout + res.stderr, envFile };
   };
-  const ok = check("v1.1.0");
+  const ok = check(`v${VERSION}`);
   assert.equal(ok.status, 0, ok.out);
-  assert.equal(readFileSync(ok.envFile, "utf8"), "VERSION=1.1.0\n");
+  assert.equal(readFileSync(ok.envFile, "utf8"), `VERSION=${VERSION}\n`);
   assert.equal(check("v1.0.0").status, 1);
-  assert.equal(check("v1.1.1").status, 1);
-  assert.equal(check("1.1.0").status, 1);
+  assert.equal(check("v1.1.0").status, 1);
+  assert.equal(check(VERSION).status, 1);
 });
 
 // Done-when 3 (spec section 6).
@@ -109,7 +88,7 @@ test("the README starts with the unofficial notice and the four snippets, and up
   const readme = read("README.md");
   const [top = "", ...rest] = readme.split("\n---\n");
   assert.ok(readme.slice(0, 300).includes(UPSTREAM_LINE), "the notice is not at the top");
-  assert.match(top, /npx -y albert-heijn-be-mcp --anonymous/);
+  assert.match(top, /npx -y @arnouthoebreckx\/albert-heijn-be-mcp --anonymous/);
   assert.match(top, /Claude Desktop/);
   assert.match(top, /"mcpServers"/);
   assert.match(top, new RegExp(`docker run .*${IMAGE.replaceAll(".", "\\.")}`));
@@ -121,12 +100,14 @@ test("the README starts with the unofficial notice and the four snippets, and up
 });
 
 // Done-when 4 (spec section 9, item 1): npx on the packed tarball. The image run is CI's end-to-end test.
+// M7 done-when 3: the tarball is the scoped package; the binary is still `albert-heijn-be-mcp`.
 test("npx on the tarball from npm pack answers tools/list with the anonymous set", { timeout: 240_000 }, async () => {
   const snapshot: string[] = readJson("test/fixtures/tools-anonymous.snapshot.json").map((t: { name: string }) => t.name);
   const dir = mkdtempSync(join(tmpdir(), "ah-be-mcp-pack-"));
   const npm = { cwd: root, encoding: "utf8" as const };
   execFileSync("npm", ["run", "build"], npm);
   const tgz = execFileSync("npm", ["pack", "--silent", "--ignore-scripts", "--pack-destination", dir], npm).trim();
+  assert.equal(tgz, `arnouthoebreckx-${NAME}-${VERSION}.tgz`, "the tarball is not the scoped package");
   const { env, home } = cleanEnv({ npm_config_cache: process.env.npm_config_cache ?? join(homedir(), ".npm") });
   const client = new Client({ name: "test", version: "0" });
   try {
@@ -145,10 +126,18 @@ test("NOTICE and the README name the upstream version", () => {
 });
 
 // M6 done-when 6 and 7: the image job. Its scripts run in a copy of the three version files at `version`.
+// M7 done-when 10: server.json's packages have no version of their own; the .mcpb URL and the image tag carry it,
+// and `mcpbTag` and `ociTag` let a test put a wrong one there.
 const CHECK = "Check tag matches package.json";
 const TAGS = "Tag the image from the release tag";
 
-function runInCopy(script: string, tag: string, versions: { package?: string; server?: string; manifest?: string }) {
+const MCPB_URL = (tag: string) => `https://github.com/arnouthoebreckx/${NAME}/releases/download/${tag}/${NAME}.mcpb`;
+
+function runInCopy(
+  script: string,
+  tag: string,
+  versions: { package?: string; server?: string; manifest?: string; mcpbTag?: string; ociTag?: string },
+) {
   const dir = mkdtempSync(join(tmpdir(), "ah-be-mcp-wf-"));
   const pkg = readJson("package.json");
   const server = readJson("server.json");
@@ -156,7 +145,10 @@ function runInCopy(script: string, tag: string, versions: { package?: string; se
   const version = versions.package ?? pkg.version;
   writeFileSync(join(dir, "package.json"), JSON.stringify({ ...pkg, version }));
   server.version = versions.server ?? version;
-  for (const p of server.packages) p.version = versions.server ?? version;
+  for (const p of server.packages) {
+    if (p.registryType === "mcpb") p.identifier = MCPB_URL(versions.mcpbTag ?? `v${version}`);
+    if (p.registryType === "oci") p.identifier = `${IMAGE}:${versions.ociTag ?? version}`;
+  }
   writeFileSync(join(dir, "server.json"), JSON.stringify(server));
   writeFileSync(join(dir, "manifest.json"), JSON.stringify({ ...manifest, version: versions.manifest ?? version }));
   const env = join(dir, "env");
@@ -174,20 +166,21 @@ test("the image job checks package.json, server.json and manifest.json against t
   const image = job(release, "image");
   assert.ok(image.indexOf(`- name: ${CHECK}`) !== -1 && image.indexOf(`- name: ${CHECK}`) < image.indexOf("docker/build-push-action@"));
   assert.equal(stepScript(image, CHECK), stepScript(job(release, "release"), CHECK), "the two jobs check differently");
-  const ok = runInCopy(beforePush(), "v1.1.0", {});
+  assert.equal(stepScript(image, CHECK), stepScript(job(release, "registry"), CHECK), "the registry job checks differently");
+  const ok = runInCopy(beforePush(), `v${VERSION}`, {});
   assert.equal(ok.status, 0, ok.log);
   for (const bad of [{ server: "1.0.0" }, { manifest: "1.0.0" }, { package: "1.0.0" }]) {
-    const res = runInCopy(beforePush(), "v1.1.0", bad);
+    const res = runInCopy(beforePush(), `v${VERSION}`, bad);
     assert.equal(res.status, 1, `${JSON.stringify(bad)}: ${res.log}`);
     assert.equal(res.output, "", `${JSON.stringify(bad)}: the tags were written`);
   }
 });
 
 test("latest moves only for a tag of the form vMAJOR.MINOR.PATCH", () => {
-  const stable = runInCopy(beforePush(), "v1.1.0", {});
-  assert.match(stable.output, new RegExp(`tags=.*${IMAGE}:1\\.1\\.0\\b`));
+  const stable = runInCopy(beforePush(), `v${VERSION}`, {});
+  assert.match(stable.output, new RegExp(`tags=.*${IMAGE}:1\\.1\\.1\\b`));
   assert.match(stable.output, new RegExp(`${IMAGE}:latest`));
-  for (const version of ["1.1.0-rc.1", "1.1.0+build.5"]) {
+  for (const version of [`${VERSION}-rc.1`, `${VERSION}+build.5`]) {
     const pre = runInCopy(beforePush(), `v${version}`, { package: version, server: version, manifest: version });
     assert.equal(pre.status, 0, pre.log);
     assert.ok(pre.output.includes(`${IMAGE}:${version}`), pre.output);
@@ -200,9 +193,26 @@ test("deploy/ holds only the unit of this package", () => {
   assert.deepEqual(readdirSync(join(root, "deploy")), [`${NAME}.service`]);
 });
 
-// M6 done-when 9: an install from the MCP Registry or the .mcpb runs without a login.
+// M6 done-when 9: an install from the MCP Registry or the .mcpb runs without a login. Since M7 (spec section 8)
+// the registry lists the .mcpb, whose manifest passes --anonymous, and the image, whose CMD does: no package
+// of server.json has arguments or environment variables of its own.
 test("server.json and manifest.json start the server with --anonymous", () => {
   const server = readJson("server.json");
-  assert.deepEqual(server.packages[0].packageArguments, [{ type: "positional", value: "--anonymous" }]);
+  for (const p of server.packages) {
+    assert.equal(p.packageArguments, undefined, p.registryType);
+    assert.equal(p.environmentVariables, undefined, p.registryType);
+  }
   assert.deepEqual(readJson("manifest.json").server.mcp_config.args, ["${__dirname}/dist/index.js", "--anonymous"]);
+});
+
+// M7 done-when 10 (spec section 8; M6 done-when 6): the check also holds the .mcpb URL and the image tag to the release tag.
+test("the version check fails when the oci tag or the .mcpb URL of server.json is another version", () => {
+  const check = stepScript(release, CHECK);
+  assert.equal(runInCopy(check, `v${VERSION}`, {}).status, 0);
+  const wrongOci = runInCopy(check, `v${VERSION}`, { ociTag: "1.1.0" });
+  assert.equal(wrongOci.status, 1, wrongOci.log);
+  assert.match(wrongOci.log, /oci|image/i);
+  const wrongUrl = runInCopy(check, `v${VERSION}`, { mcpbTag: "v1.1.0" });
+  assert.equal(wrongUrl.status, 1, wrongUrl.log);
+  assert.match(wrongUrl.log, /mcpb/i);
 });
