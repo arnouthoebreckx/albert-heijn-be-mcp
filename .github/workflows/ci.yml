@@ -44,5 +44,8 @@ jobs:
           cache: npm
       - run: make setup
       - run: docker build -t albert-heijn-be-mcp:ci .
+      # The MCP Registry lists the image only when it carries the server's name.
+      - name: Show the registry label of the image
+        run: docker image inspect --format '{{ index .Config.Labels "io.modelcontextprotocol.server.name" }}' albert-heijn-be-mcp:ci
       - name: End-to-end test against the image
         run: AH_E2E_IMAGE=albert-heijn-be-mcp:ci node --test test/e2e.test.ts
