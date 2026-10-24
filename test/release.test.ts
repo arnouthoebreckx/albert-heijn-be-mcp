@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
@@ -79,26 +79,29 @@ test("CI lints the workflows with actionlint", () => {
   assert.match(read(".github/workflows/ci.yml"), /actionlint/);
 });
 
-// Done-when 2 (spec sections 6 and 8).
-test("the three versions are 1.0.0", () => {
-  assert.equal(readJson("package.json").version, "1.0.0");
-  assert.equal(readJson("server.json").version, "1.0.0");
-  assert.equal(readJson("manifest.json").version, "1.0.0");
-  assert.deepEqual(readJson("server.json").packages.map((p: { version: string }) => p.version), ["1.0.0"]);
+// Done-when 2 (spec sections 6 and 8); M6 done-when 5 moves it to 1.1.0.
+test("the three versions, and the root of package-lock.json, are 1.1.0", () => {
+  assert.equal(readJson("package.json").version, "1.1.0");
+  assert.equal(readJson("server.json").version, "1.1.0");
+  assert.equal(readJson("manifest.json").version, "1.1.0");
+  assert.deepEqual(readJson("server.json").packages.map((p: { version: string }) => p.version), ["1.1.0"]);
+  assert.equal(readJson("package-lock.json").version, "1.1.0");
+  assert.equal(readJson("package-lock.json").packages[""].version, "1.1.0");
 });
 
-test("the release workflow's version check passes for the tag v1.0.0, and fails for another tag", () => {
+test("the release workflow's version check passes for the tag v1.1.0, and fails for another tag", () => {
   const script = stepScript(release, "Check tag matches package.json");
   const check = (tag: string) => {
     const envFile = join(mkdtempSync(join(tmpdir(), "ah-be-mcp-")), "env");
     const res = spawnSync("bash", ["-ec", script], { cwd: root, env: { PATH: process.env.PATH ?? "", GITHUB_REF_NAME: tag, GITHUB_ENV: envFile }, encoding: "utf8" });
     return { status: res.status, out: res.stdout + res.stderr, envFile };
   };
-  const ok = check("v1.0.0");
+  const ok = check("v1.1.0");
   assert.equal(ok.status, 0, ok.out);
-  assert.equal(readFileSync(ok.envFile, "utf8"), "VERSION=1.0.0\n");
-  assert.equal(check("v1.0.1").status, 1);
-  assert.equal(check("1.0.0").status, 1);
+  assert.equal(readFileSync(ok.envFile, "utf8"), "VERSION=1.1.0\n");
+  assert.equal(check("v1.0.0").status, 1);
+  assert.equal(check("v1.1.1").status, 1);
+  assert.equal(check("1.1.0").status, 1);
 });
 
 // Done-when 3 (spec section 6).
@@ -139,4 +142,66 @@ test("npx on the tarball from npm pack answers tools/list with the anonymous set
 test("NOTICE and the README name the upstream version", () => {
   assert.match(read("NOTICE"), /albert-heijn-mcp v1\.7\.1/);
   assert.ok(read("README.md").includes("olekpuchka/albert-heijn-mcp v1.7.1"));
+});
+
+// M6 done-when 6 and 7: the image job. Its scripts run in a copy of the three version files at `version`.
+const CHECK = "Check tag matches package.json";
+const TAGS = "Tag the image from the release tag";
+
+function runInCopy(script: string, tag: string, versions: { package?: string; server?: string; manifest?: string }) {
+  const dir = mkdtempSync(join(tmpdir(), "ah-be-mcp-wf-"));
+  const pkg = readJson("package.json");
+  const server = readJson("server.json");
+  const manifest = readJson("manifest.json");
+  const version = versions.package ?? pkg.version;
+  writeFileSync(join(dir, "package.json"), JSON.stringify({ ...pkg, version }));
+  server.version = versions.server ?? version;
+  for (const p of server.packages) p.version = versions.server ?? version;
+  writeFileSync(join(dir, "server.json"), JSON.stringify(server));
+  writeFileSync(join(dir, "manifest.json"), JSON.stringify({ ...manifest, version: versions.manifest ?? version }));
+  const env = join(dir, "env");
+  const out = join(dir, "output");
+  const res = spawnSync("bash", ["-ec", script], { cwd: dir, env: { PATH: process.env.PATH ?? "", GITHUB_REF_NAME: tag, GITHUB_ENV: env, GITHUB_OUTPUT: out }, encoding: "utf8" });
+  const read = (f: string) => (existsSync(f) ? readFileSync(f, "utf8") : "");
+  return { status: res.status, log: res.stdout + res.stderr, env: read(env), output: read(out) };
+}
+
+// Steps that run before the image is pushed: the check, then the tags.
+const beforePush = (): string => `${stepScript(job(release, "image"), CHECK)}\n${stepScript(job(release, "image"), TAGS)}`;
+
+test("the image job checks package.json, server.json and manifest.json against the tag before it pushes", () => {
+  const image = job(release, "image");
+  assert.ok(image.indexOf(`- name: ${CHECK}`) !== -1 && image.indexOf(`- name: ${CHECK}`) < image.indexOf("docker/build-push-action@"));
+  assert.equal(stepScript(image, CHECK), stepScript(job(release, "release"), CHECK), "the two jobs check differently");
+  const ok = runInCopy(beforePush(), "v1.1.0", {});
+  assert.equal(ok.status, 0, ok.log);
+  for (const bad of [{ server: "1.0.0" }, { manifest: "1.0.0" }, { package: "1.0.0" }]) {
+    const res = runInCopy(beforePush(), "v1.1.0", bad);
+    assert.equal(res.status, 1, `${JSON.stringify(bad)}: ${res.log}`);
+    assert.equal(res.output, "", `${JSON.stringify(bad)}: the tags were written`);
+  }
+});
+
+test("latest moves only for a tag of the form vMAJOR.MINOR.PATCH", () => {
+  const stable = runInCopy(beforePush(), "v1.1.0", {});
+  assert.match(stable.output, new RegExp(`tags=.*${IMAGE}:1\\.1\\.0\\b`));
+  assert.match(stable.output, new RegExp(`${IMAGE}:latest`));
+  for (const version of ["1.1.0-rc.1", "1.1.0+build.5"]) {
+    const pre = runInCopy(beforePush(), `v${version}`, { package: version, server: version, manifest: version });
+    assert.equal(pre.status, 0, pre.log);
+    assert.ok(pre.output.includes(`${IMAGE}:${version}`), pre.output);
+    assert.ok(!pre.output.includes("latest"), `${version} moves latest: ${pre.output}`);
+  }
+});
+
+// M6 done-when 8: upstream's unit, with the old user and path, is gone.
+test("deploy/ holds only the unit of this package", () => {
+  assert.deepEqual(readdirSync(join(root, "deploy")), [`${NAME}.service`]);
+});
+
+// M6 done-when 9: an install from the MCP Registry or the .mcpb runs without a login.
+test("server.json and manifest.json start the server with --anonymous", () => {
+  const server = readJson("server.json");
+  assert.deepEqual(server.packages[0].packageArguments, [{ type: "positional", value: "--anonymous" }]);
+  assert.deepEqual(readJson("manifest.json").server.mcp_config.args, ["${__dirname}/dist/index.js", "--anonymous"]);
 });
