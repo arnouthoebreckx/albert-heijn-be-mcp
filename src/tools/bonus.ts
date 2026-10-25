@@ -117,13 +117,16 @@ export function registerBonusTools(server: McpServer, ctx: ToolContext): void {
         valid_from: validFrom,
         valid_until: validUntil,
         categories: z.array(categorySummary).describe("Every bonus category of the week with its number of offers, before any filter"),
+        total: z
+          .number()
+          .describe("Number of offers that match period, query, categories, food_only and previously_bought, before limit: offers holds at most limit of them. Ask again with limit = total to get all"),
         offers: z.array(offerView),
       },
     },
     async (c, args) => {
       const name = args.period === "next" ? "next" : "current";
       const p = await bonusPeriod(ctx, c, args.period);
-      if (typeof p === "string") return structured({ period: name, categories: [], offers: [] }, p);
+      if (typeof p === "string") return structured({ period: name, categories: [], total: 0, offers: [] }, p);
       const limit = orDefault(args.limit, 20);
       const query = (args.query ?? "").toLowerCase();
 
@@ -142,11 +145,14 @@ export function registerBonusTools(server: McpServer, ctx: ToolContext): void {
       const nonFood = args.food_only ? new Set(NON_FOOD_CATEGORIES.map(lower)) : undefined;
 
       const offers: z.infer<typeof offerView>[] = [];
+      let total = 0;
       const add = (
         o: { id?: number; segment?: string; title: string; was?: number; now?: number; mechanism?: string | null; category?: string; source: PriceSource; unit?: string | null; start?: string | null; end?: string | null },
       ) => {
-        if (offers.length >= limit || (query && !o.title.toLowerCase().includes(query))) return;
+        if (query && !o.title.toLowerCase().includes(query)) return;
         if ((wanted && !wanted.has(lower(o.category ?? ""))) || nonFood?.has(lower(o.category ?? ""))) return;
+        total++;
+        if (offers.length >= limit) return;
         const discount = o.was && o.now ? Math.round((1 - o.now / o.was) * 100) : undefined;
         const own = (o.start && o.start !== p.start) || (o.end && o.end !== p.end);
         offers.push({
@@ -196,7 +202,7 @@ export function registerBonusTools(server: McpServer, ctx: ToolContext): void {
           });
         }
       }
-      return structured({ period: name, valid_from: p.start, valid_until: p.end, categories, offers });
+      return structured({ period: name, valid_from: p.start, valid_until: p.end, categories, total, offers });
     },
     (args) => {
       if (args.previously_bought && isAnonymous(ctx.clients)) throw new Error(PREVIOUSLY_BOUGHT_NEEDS_LOGIN);
