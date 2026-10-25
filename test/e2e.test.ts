@@ -43,6 +43,17 @@ async function callEveryTool(client: Client): Promise<void> {
   assert.equal(week.categories.length, 5);
   assert.ok(week.offers.every((o: any) => typeof o.pack_price === "number" && "deal_min_quantity" in o));
 
+  // M9 (spec 2b, B1 and B2): total on the offers list with the default limit, dates on bonus search rows.
+  const dflt = await call("ah_get_bonus_offers", {});
+  const everything = await call("ah_get_bonus_offers", { limit: 1000 });
+  assert.equal(dflt.total, everything.offers.length);
+  assert.equal(dflt.offers.length, Math.min(20, dflt.total));
+  const bonus = await call("ah_search_products", { queries: ["bonus"], bonus: true, limit: 30 });
+  const row = bonus.searches[0].results.find((r: any) => r.id === 502305);
+  assert.deepEqual([row.bonus_valid_from, row.bonus_valid_until], ["2026-10-19", "2026-10-25"]);
+  assert.ok(bonus.searches[0].results.every((r: any) => r.bonus_valid_from && r.bonus_valid_until));
+  assert.deepEqual([searches[0].results[0].bonus_valid_from, searches[0].results[0].bonus_valid_until], [null, null]);
+
   const group = await call("ah_get_bonus_group_products", { segment_id: "820697" });
   assert.ok(group.products.length > 0);
   const page = await call("ah_get_bonus_group_products", { segment_id: "820697", limit: 2, offset: 1, include_images: true });
