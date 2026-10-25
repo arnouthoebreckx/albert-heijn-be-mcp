@@ -11,7 +11,7 @@ import {
   searchProducts,
 } from "../ahapi/index.ts";
 import { addAuthedTool, nonFatal, orDefault, parallel, structured, type ToolContext, withRetry } from "./common.ts";
-import { detailProduct, productDetail, productRow, productRowView, productSummary, summarizeProduct } from "./views.ts";
+import { detailProduct, productDetail, productSummary, searchRow, searchRowView, summarizeProduct } from "./views.ts";
 
 const MAX_QUERIES = 10;
 const MAX_PRODUCT_IDS = 20;
@@ -97,7 +97,7 @@ export function registerProductTools(server: McpServer, ctx: ToolContext): void 
         include_images: z.boolean().optional().describe("Include image_url in each result (default false)"),
       },
       output: {
-        searches: z.array(z.object({ query: z.string(), results: z.array(productRow), error: z.string().optional() })),
+        searches: z.array(z.object({ query: z.string(), results: z.array(searchRow), error: z.string().optional() })),
       },
     },
     async (c, { queries, limit, bonus, filters, sort, include_images }) => {
@@ -107,7 +107,7 @@ export function registerProductTools(server: McpServer, ctx: ToolContext): void 
 
       const results = qs.map((query) => ({
         query,
-        results: [] as ReturnType<typeof productRowView>[],
+        results: [] as ReturnType<typeof searchRowView>[],
         error: undefined as string | undefined,
       }));
       const opts: SearchOptions = {
@@ -119,7 +119,7 @@ export function registerProductTools(server: McpServer, ctx: ToolContext): void 
         const r = results[i]!;
         await nonFatal(
           async () => {
-            r.results = (await search(ctx, c, r.query, perQuery, opts)).map((p) => productRowView(p, { images: include_images }));
+            r.results = (await search(ctx, c, r.query, perQuery, opts)).map((p) => searchRowView(p, { images: include_images }));
           },
           (err) => {
             r.error = (err as Error).message;
