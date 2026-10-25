@@ -66,8 +66,10 @@ export function registerProductTools(server: McpServer, ctx: ToolContext): void 
         "Pass one or more queries (max 10) to search for several products in one call. " +
         "Prefer Dutch search terms for best results: " +
         "e.g. 'melk' (milk), 'kaas' (cheese), 'brood' (bread), 'kip' (chicken), 'appel' (apple). " +
-        "Set bonus=true to return only products currently on promotion; this also finds product promotions, " +
+        "Set bonus=true to return only products with a current or upcoming promotion (next week's early deals too), " +
+        "so it is not the week's offers list; this also finds product promotions, " +
         "such as volume discounts ('5% volume voordeel' on a 2-pack), that ah_get_bonus_offers does not list. " +
+        "Each bonus row says when its deal runs: bonus_valid_from and bonus_valid_until (2999-12-31 means no end). " +
         "filters narrows results to products matching all of them, e.g. ['organic', 'gluten_free']: " +
         "organic, prijsfavoriet (AH's budget label), new, frozen, a diet (vegan, vegetarian, low_sugar, low_fat, low_salt), " +
         "or free from an allergen (gluten_free, lactose_free, milk_free, egg_free, nut_free, peanut_free, soy_free, " +
@@ -85,7 +87,7 @@ export function registerProductTools(server: McpServer, ctx: ToolContext): void 
           .int()
           .optional()
           .describe("Maximum results per query (default 10 for one query, 5 for several; max 30)"),
-        bonus: z.boolean().optional().describe("Return only products currently on bonus/promotion"),
+        bonus: z.boolean().optional().describe("Return only products with a current or upcoming bonus/promotion"),
         filters: z
           .array(z.enum(Object.keys(FILTERS) as [Filter, ...Filter[]]))
           .optional()

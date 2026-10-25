@@ -846,7 +846,7 @@
           "maximum": 9007199254740991
         },
         "bonus": {
-          "description": "Return only products currently on bonus/promotion",
+          "description": "Return only products with a current or upcoming bonus/promotion",
           "type": "boolean"
         },
         "filters": {

@@ -77,6 +77,17 @@ test("the food_only input names the three non-food categories it leaves out and 
   for (const name of ["Baby en kind", "Gezondheid en sport"]) assert.ok(d.includes(name), `the food_only description does not say that ${name} stays`);
 });
 
+test("ah_search_products says bonus=true returns any current or upcoming deal, not the week's offers list, and that each row says when its deal runs", async () => {
+  const search = (await listed()).get("ah_search_products")!;
+  const d = search.description!;
+  assert.match(d, /bonus=true[^.]*(current or upcoming|upcoming)/i);
+  assert.match(d, /not the week's offers list/i);
+  assert.match(d, /ah_get_bonus_offers/);
+  for (const field of ["bonus_valid_from", "bonus_valid_until"]) assert.ok(d.includes(field), `the description does not name ${field}`);
+  assert.match(d, /2999-12-31/);
+  assert.match((search.inputSchema.properties!.bonus as { description?: string }).description ?? "", /upcoming/i);
+});
+
 test("the search rows' date fields say what they are, and that 2999-12-31 is no end date", async () => {
   const search = rowProperties((await listed()).get("ah_search_products")!.outputSchema, "searches", "results");
   assert.match(search.bonus_valid_from!.description!, /first day/i);
