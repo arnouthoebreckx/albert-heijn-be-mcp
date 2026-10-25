@@ -40,8 +40,8 @@ const names = (schema: Schema | undefined) => Object.keys(schema?.properties ?? 
 test("2a lists these inputs and outputs for ah_get_bonus_offers", async () => {
   const t = (await schemas()).get("ah_get_bonus_offers")!;
   assert.deepEqual(names(t.inputSchema), ["categories", "food_only", "limit", "period", "previously_bought", "query"]);
-  assert.deepEqual(names(t.outputSchema), ["categories", "offers", "period", "valid_from", "valid_until"]);
-  assert.deepEqual(t.outputSchema!.required!.sort(), ["categories", "offers", "period"], "valid_from and valid_until are optional: next week may not be published");
+  assert.deepEqual(names(t.outputSchema), ["categories", "offers", "period", "total", "valid_from", "valid_until"], "M9 (spec 2b, B1) adds total");
+  assert.deepEqual(t.outputSchema!.required!.sort(), ["categories", "offers", "period", "total"], "valid_from and valid_until are optional: next week may not be published");
   assert.deepEqual(rows(t.outputSchema!, "categories"), ["name", "offer_count"]);
   assert.deepEqual(rows(t.outputSchema!, "offers"), ["bonus_mechanism", "bonus_price", "bonus_segment_id", "category", "discount_percentage", "id", "original_price", "title", "url", ...FIELDS, "valid_from", "valid_until"].sort());
   assert.equal((t.inputSchema.properties!.categories as any).type, "array");
@@ -60,7 +60,7 @@ test("2a lists these inputs and outputs for ah_search_products and ah_get_produc
   const all = await schemas();
   const search = all.get("ah_search_products")!;
   assert.deepEqual(names(search.inputSchema), ["bonus", "filters", "include_images", "limit", "queries", "sort"]);
-  assert.deepEqual(rows(search.outputSchema!, "searches", "results"), [...ROW, "image_url", ...FIELDS].sort());
+  assert.deepEqual(rows(search.outputSchema!, "searches", "results"), [...ROW, "image_url", ...FIELDS, "bonus_valid_from", "bonus_valid_until"].sort(), "M9 (spec 2b, B2) adds the two dates to search rows only");
   const products = all.get("ah_get_products")!;
   assert.deepEqual(names(products.inputSchema), ["include_description", "include_images", "include_ingredients", "include_nutritional_info", "product_ids"]);
   assert.deepEqual(

@@ -96,12 +96,15 @@ export function text(value: string): CallToolResult {
   return { content: [{ type: "text", text: value }] };
 }
 
+/** Fields whose null is part of the output schema: the price fields, and the dates of a search row's deal (spec 2b, B2). */
+const NULL_KEPT = new Set([...PRICE_FIELD_NAMES, "bonus_valid_from", "bonus_valid_until"]);
+
 /** A result with structured data, also sent as JSON text for clients without structured output; message replaces the text. */
 export function structured(data: Record<string, unknown>, message?: string): CallToolResult {
   // AH sends null for some missing values; as "absent" they fit the optional fields of the output schemas.
-  // The price fields are the exception: null there means "no deal" or "not known", and is part of the schema.
+  // The price fields and the deal dates are the exception: null there means "no deal" or "not known", and is part of the schema.
   // Compact, as it is the text copy for older clients and is read by a model, which pays for every space.
-  const json = JSON.stringify(data, (key, value: unknown) => (value === null && !PRICE_FIELD_NAMES.has(key) ? undefined : value));
+  const json = JSON.stringify(data, (key, value: unknown) => (value === null && !NULL_KEPT.has(key) ? undefined : value));
   return { content: [{ type: "text", text: message ?? json }], structuredContent: JSON.parse(json) as Record<string, unknown> };
 }
 

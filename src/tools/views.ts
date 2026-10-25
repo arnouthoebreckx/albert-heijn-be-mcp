@@ -49,6 +49,19 @@ const productRowShape = {
 };
 export const productRow = z.object(productRowShape);
 
+/** Row of ah_search_products: the product row, and when its deal runs (spec 2b, B2). */
+export const searchRow = z.object({
+  ...productRowShape,
+  bonus_valid_from: z
+    .string()
+    .nullable()
+    .describe("First day of the deal (YYYY-MM-DD, inclusive), as AH's search answer gives it; null without a deal, or when AH gives no date"),
+  bonus_valid_until: z
+    .string()
+    .nullable()
+    .describe("Last day of the deal (YYYY-MM-DD, inclusive), as AH gives it: 2999-12-31 means the deal has no end date; null without a deal, or when AH gives no date"),
+});
+
 /** A group's products: the row, and the bonus category of the group (not the product's own mainCategory). */
 export const groupProductRow = z.object({ ...productRowShape, category: z.string().describe("The bonus category of the group, as in ah_get_bonus_offers") });
 
@@ -147,6 +160,15 @@ export function productRowView(p: Product, opts: { images?: boolean; category?: 
     ...(opts.images ? { image_url: productImage(p) || undefined } : {}),
     ...(opts.category === undefined ? {} : { category: opts.category }),
     ...rowPrices(p),
+  };
+}
+
+/** A row of ah_search_products. The week is not filtered: a deal of next week comes back with its own dates. */
+export function searchRowView(p: Product, opts: { images?: boolean } = {}): z.infer<typeof searchRow> {
+  return {
+    ...productRowView(p, opts),
+    bonus_valid_from: (p.isBonus && p.bonusStartDate) || null,
+    bonus_valid_until: (p.isBonus && p.bonusEndDate) || null,
   };
 }
 

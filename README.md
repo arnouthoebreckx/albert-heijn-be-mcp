@@ -446,10 +446,10 @@ Tools that return data also return it as [structured output](https://modelcontex
 
 | Tool | Description |
 |---|---|
-| `ah_search_products` | Search one or more keywords at once; Dutch terms work best. Filter by `bonus=true` or by `filters` (organic, vegan, gluten_free and other diets, allergens and labels), and `sort` by price, what you buy most, or Nutri-Score. `include_images=true` adds `image_url` to each result. |
+| `ah_search_products` | Search one or more keywords at once; Dutch terms work best. Filter by `bonus=true` or by `filters` (organic, vegan, gluten_free and other diets, allergens and labels), and `sort` by price, what you buy most, or Nutri-Score. `include_images=true` adds `image_url` to each result. A row with a deal says when it runs: `bonus_valid_from` and `bonus_valid_until` (`2999-12-31` is no end date). |
 | `ah_get_products` | Details for one or more products. `include_nutritional_info=true` adds the nutrition table, `include_ingredients=true` the ingredients and allergens, `include_description=true` the description and `include_images=true` the `image_url`. |
 | `ah_get_product_alternatives` | Similar products and substitutes AH suggests for a product. |
-| `ah_get_bonus_offers` | This week's bonus offers, or next week's with `period=next`. `previously_bought=true` limits them to products you bought before (AH's "Eerder gekocht"). Can filter by keyword, by `categories` (names from the answer's `categories`) and with `food_only=true`. The answer says which week it covers (`period`, `valid_from`, `valid_until`). |
+| `ah_get_bonus_offers` | This week's bonus offers, or next week's with `period=next`. `previously_bought=true` limits them to products you bought before (AH's "Eerder gekocht"). Can filter by keyword, by `categories` (names from the answer's `categories`) and with `food_only=true`. The answer says which week it covers (`period`, `valid_from`, `valid_until`) and, in `total`, how many offers match before `limit`. |
 | `ah_get_bonus_group_products` | The individual products behind a group deal such as "2+1 gratis", `limit` (default 25) and `offset` at a time, with `total`; `include_images=true` adds `image_url`. |
 | `ah_search_stores` | Nearby stores, by postal code or your own address. |
 | `ah_get_last_chance_items` | Vandaag-af markdowns in a store; the one nearest your address by default. |

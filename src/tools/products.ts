@@ -11,7 +11,7 @@ import {
   searchProducts,
 } from "../ahapi/index.ts";
 import { addAuthedTool, nonFatal, orDefault, parallel, structured, type ToolContext, withRetry } from "./common.ts";
-import { detailProduct, productDetail, productRow, productRowView, productSummary, summarizeProduct } from "./views.ts";
+import { detailProduct, productDetail, productSummary, searchRow, searchRowView, summarizeProduct } from "./views.ts";
 
 const MAX_QUERIES = 10;
 const MAX_PRODUCT_IDS = 20;
@@ -66,8 +66,10 @@ export function registerProductTools(server: McpServer, ctx: ToolContext): void 
         "Pass one or more queries (max 10) to search for several products in one call. " +
         "Prefer Dutch search terms for best results: " +
         "e.g. 'melk' (milk), 'kaas' (cheese), 'brood' (bread), 'kip' (chicken), 'appel' (apple). " +
-        "Set bonus=true to return only products currently on promotion; this also finds product promotions, " +
+        "Set bonus=true to return only products with a current or upcoming promotion (next week's early deals too), " +
+        "so it is not the week's offers list; this also finds product promotions, " +
         "such as volume discounts ('5% volume voordeel' on a 2-pack), that ah_get_bonus_offers does not list. " +
+        "Each bonus row says when its deal runs: bonus_valid_from and bonus_valid_until (2999-12-31 means no end). " +
         "filters narrows results to products matching all of them, e.g. ['organic', 'gluten_free']: " +
         "organic, prijsfavoriet (AH's budget label), new, frozen, a diet (vegan, vegetarian, low_sugar, low_fat, low_salt), " +
         "or free from an allergen (gluten_free, lactose_free, milk_free, egg_free, nut_free, peanut_free, soy_free, " +
@@ -85,7 +87,7 @@ export function registerProductTools(server: McpServer, ctx: ToolContext): void 
           .int()
           .optional()
           .describe("Maximum results per query (default 10 for one query, 5 for several; max 30)"),
-        bonus: z.boolean().optional().describe("Return only products currently on bonus/promotion"),
+        bonus: z.boolean().optional().describe("Return only products with a current or upcoming bonus/promotion"),
         filters: z
           .array(z.enum(Object.keys(FILTERS) as [Filter, ...Filter[]]))
           .optional()
@@ -97,7 +99,7 @@ export function registerProductTools(server: McpServer, ctx: ToolContext): void 
         include_images: z.boolean().optional().describe("Include image_url in each result (default false)"),
       },
       output: {
-        searches: z.array(z.object({ query: z.string(), results: z.array(productRow), error: z.string().optional() })),
+        searches: z.array(z.object({ query: z.string(), results: z.array(searchRow), error: z.string().optional() })),
       },
     },
     async (c, { queries, limit, bonus, filters, sort, include_images }) => {
@@ -107,7 +109,7 @@ export function registerProductTools(server: McpServer, ctx: ToolContext): void 
 
       const results = qs.map((query) => ({
         query,
-        results: [] as ReturnType<typeof productRowView>[],
+        results: [] as ReturnType<typeof searchRowView>[],
         error: undefined as string | undefined,
       }));
       const opts: SearchOptions = {
@@ -119,7 +121,7 @@ export function registerProductTools(server: McpServer, ctx: ToolContext): void 
         const r = results[i]!;
         await nonFatal(
           async () => {
-            r.results = (await search(ctx, c, r.query, perQuery, opts)).map((p) => productRowView(p, { images: include_images }));
+            r.results = (await search(ctx, c, r.query, perQuery, opts)).map((p) => searchRowView(p, { images: include_images }));
           },
           (err) => {
             r.error = (err as Error).message;
