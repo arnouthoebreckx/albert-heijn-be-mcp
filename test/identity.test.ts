@@ -6,7 +6,7 @@ import { read, readJson } from "./helpers.ts";
 const NAME = "albert-heijn-be-mcp";
 const SCOPE = "@arnouthoebreckx/";
 const SCOPED_NAME = `${SCOPE}${NAME}`;
-const VERSION = "1.2.0";
+const VERSION = "1.3.0";
 const MCP_NAME = "io.github.arnouthoebreckx/albert-heijn-be-mcp";
 const REPO = "https://github.com/arnouthoebreckx/albert-heijn-be-mcp";
 
@@ -35,7 +35,7 @@ test("the package is published to GitHub Packages and linked to this repository"
   assert.equal(pkg.repository.url, `git+${REPO}.git`);
 });
 
-test("package.json, server.json and manifest.json have the same version, 1.2.0", () => {
+test("package.json, server.json and manifest.json have the same version, 1.3.0", () => {
   assert.equal(pkg.version, VERSION);
   assert.equal(server.version, VERSION);
   assert.equal(manifest.version, VERSION);
