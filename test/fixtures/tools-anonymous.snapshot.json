@@ -13,12 +13,28 @@
           "description": "Bonus segment ID from the bonus_segment_id field in ah_get_bonus_offers"
         },
         "period": {
-          "description": "Bonus week of the offer: 'current' (default) or 'next'",
+          "description": "Bonus week of the offer: 'current' (default); 'next' is an error on ah.be",
           "type": "string",
           "enum": [
             "current",
             "next"
           ]
+        },
+        "limit": {
+          "description": "Maximum number of products to return (default 25, max 100)",
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "offset": {
+          "description": "Number of products to skip, for the next page (default 0)",
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "include_images": {
+          "description": "Include image_url in each product (default false)",
+          "type": "boolean"
         }
       },
       "required": [
@@ -29,6 +45,26 @@
     "outputSchema": {
       "type": "object",
       "properties": {
+        "period": {
+          "type": "string",
+          "enum": [
+            "current",
+            "next"
+          ],
+          "description": "The bonus week this answer is for"
+        },
+        "valid_from": {
+          "description": "First day of the bonus week (YYYY-MM-DD, inclusive); absent when next week is not published yet",
+          "type": "string"
+        },
+        "valid_until": {
+          "description": "Last day of the bonus week (YYYY-MM-DD, inclusive); absent when next week is not published yet",
+          "type": "string"
+        },
+        "total": {
+          "type": "number",
+          "description": "Products in the group before paging"
+        },
         "products": {
           "type": "array",
           "items": {
@@ -44,9 +80,11 @@
                 "type": "string"
               },
               "price": {
-                "type": "number"
+                "type": "number",
+                "description": "Normal price of one pack in euros, whatever the deal. Same as pack_price."
               },
               "bonus_price": {
+                "description": "Price of one pack with the bonus, only where AH sends one: a percentage or euro discount, or a price for one pack ('VOOR 1.99'). Absent for deals on several packs ('2e gratis', '2 voor 5.00'): then deal_min_quantity packs cost deal_total, which is deal_price_per_pack a pack.",
                 "type": "number"
               },
               "unit": {
@@ -59,7 +97,63 @@
                 "type": "string"
               },
               "image_url": {
+                "description": "Only with include_images: true",
                 "type": "string"
+              },
+              "pack_price": {
+                "description": "Normal shelf price of one pack, in euros",
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "deal_min_quantity": {
+                "description": "Packs needed to get the deal (1 for a plain discount); null without a deal, or when the mechanism is not understood",
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "deal_total": {
+                "description": "What you pay for deal_min_quantity packs with the deal, in euros",
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "deal_price_per_pack": {
+                "description": "deal_total / deal_min_quantity, in euros",
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "unit_price": {
+                "description": "Normal price per unit_price_unit, where AH gives one",
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "unit_price_unit": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": [
+                      "kg",
+                      "l",
+                      "stuk"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "The unit of unit_price"
+              },
+              "category": {
+                "type": "string",
+                "description": "The bonus category of the group, as in ah_get_bonus_offers"
               }
             },
             "required": [
@@ -67,13 +161,22 @@
               "title",
               "url",
               "price",
-              "is_bonus"
+              "is_bonus",
+              "pack_price",
+              "deal_min_quantity",
+              "deal_total",
+              "deal_price_per_pack",
+              "unit_price",
+              "unit_price_unit",
+              "category"
             ],
             "additionalProperties": false
           }
         }
       },
       "required": [
+        "period",
+        "total",
         "products"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -110,6 +213,17 @@
         "previously_bought": {
           "description": "Only offers on products the user bought before",
           "type": "boolean"
+        },
+        "categories": {
+          "description": "Only offers in these bonus categories, by name as in the categories of the answer (case does not matter; an unknown name is an error)",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "food_only": {
+          "description": "Leave out the non-food categories (default false). With categories, only the food ones of them come back",
+          "type": "boolean"
         }
       },
       "$schema": "http://json-schema.org/draft-07/schema#"
@@ -117,6 +231,43 @@
     "outputSchema": {
       "type": "object",
       "properties": {
+        "period": {
+          "type": "string",
+          "enum": [
+            "current",
+            "next"
+          ],
+          "description": "The bonus week this answer is for"
+        },
+        "valid_from": {
+          "description": "First day of the bonus week (YYYY-MM-DD, inclusive); absent when next week is not published yet",
+          "type": "string"
+        },
+        "valid_until": {
+          "description": "Last day of the bonus week (YYYY-MM-DD, inclusive); absent when next week is not published yet",
+          "type": "string"
+        },
+        "categories": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "offer_count": {
+                "type": "number",
+                "description": "Offers in this category over the whole week, before any filter"
+              }
+            },
+            "required": [
+              "name",
+              "offer_count"
+            ],
+            "additionalProperties": false
+          },
+          "description": "Every bonus category of the week with its number of offers, before any filter"
+        },
         "offers": {
           "type": "array",
           "items": {
@@ -134,10 +285,16 @@
               "url": {
                 "type": "string"
               },
+              "category": {
+                "description": "The ah.be bonus category of the offer, as in the categories of the answer",
+                "type": "string"
+              },
               "original_price": {
+                "description": "Regular price as AH sends it, for the packs the deal needs (deal_min_quantity packs, e.g. two bags for '2e gratis'), not for one pack: pack_price is one pack. A group offer has no product of its own: this is AH's example product of the group.",
                 "type": "number"
               },
               "bonus_price": {
+                "description": "Price of those packs with the deal, as AH sends it (deal_total for deal_min_quantity packs). Absent for deals like '2 voor 1.19'. A group offer has no product of its own: this is AH's example product of the group.",
                 "type": "number"
               },
               "discount_percentage": {
@@ -145,16 +302,83 @@
               },
               "bonus_mechanism": {
                 "type": "string"
+              },
+              "valid_from": {
+                "description": "Only when this offer starts on another day than the week (YYYY-MM-DD)",
+                "type": "string"
+              },
+              "valid_until": {
+                "description": "Only when this offer ends on another day than the week (YYYY-MM-DD)",
+                "type": "string"
+              },
+              "pack_price": {
+                "description": "Normal shelf price of one pack, in euros",
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "deal_min_quantity": {
+                "description": "Packs needed to get the deal (1 for a plain discount); null without a deal, or when the mechanism is not understood",
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "deal_total": {
+                "description": "What you pay for deal_min_quantity packs with the deal, in euros",
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "deal_price_per_pack": {
+                "description": "deal_total / deal_min_quantity, in euros",
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "unit_price": {
+                "description": "Normal price per unit_price_unit, where AH gives one",
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "unit_price_unit": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": [
+                      "kg",
+                      "l",
+                      "stuk"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "The unit of unit_price"
               }
             },
             "required": [
-              "title"
+              "title",
+              "pack_price",
+              "deal_min_quantity",
+              "deal_total",
+              "deal_price_per_pack",
+              "unit_price",
+              "unit_price_unit"
             ],
             "additionalProperties": false
           }
         }
       },
       "required": [
+        "period",
+        "categories",
         "offers"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -263,6 +487,18 @@
         "include_nutritional_info": {
           "description": "Include nutritional values (default false)",
           "type": "boolean"
+        },
+        "include_ingredients": {
+          "description": "Include ingredients (text) and allergens (list), where AH has them (default false)",
+          "type": "boolean"
+        },
+        "include_description": {
+          "description": "Include the description (default false)",
+          "type": "boolean"
+        },
+        "include_images": {
+          "description": "Include image_url (default false)",
+          "type": "boolean"
         }
       },
       "required": [
@@ -296,12 +532,15 @@
                     "type": "string"
                   },
                   "description": {
+                    "description": "Only with include_description: true",
                     "type": "string"
                   },
                   "price": {
-                    "type": "number"
+                    "type": "number",
+                    "description": "Normal price of one pack in euros, whatever the deal. Same as pack_price."
                   },
                   "bonus_price": {
+                    "description": "Price of one pack with the bonus, only where AH sends one: a percentage or euro discount, or a price for one pack ('VOOR 1.99'). Absent for deals on several packs ('2e gratis', '2 voor 5.00'): then deal_min_quantity packs cost deal_total, which is deal_price_per_pack a pack.",
                     "type": "number"
                   },
                   "unit_size": {
@@ -352,7 +591,87 @@
                     }
                   },
                   "image_url": {
+                    "description": "Only with include_images: true",
                     "type": "string"
+                  },
+                  "ingredients": {
+                    "description": "Only with include_ingredients: true, where AH has them",
+                    "type": "string"
+                  },
+                  "allergens": {
+                    "description": "Only with include_ingredients: true, where AH has them: what the product contains or may contain",
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "level": {
+                          "type": "string",
+                          "enum": [
+                            "contains",
+                            "may_contain"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "level"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "pack_price": {
+                    "description": "Normal shelf price of one pack, in euros",
+                    "type": [
+                      "number",
+                      "null"
+                    ]
+                  },
+                  "deal_min_quantity": {
+                    "description": "Packs needed to get the deal (1 for a plain discount); null without a deal, or when the mechanism is not understood",
+                    "type": [
+                      "number",
+                      "null"
+                    ]
+                  },
+                  "deal_total": {
+                    "description": "What you pay for deal_min_quantity packs with the deal, in euros",
+                    "type": [
+                      "number",
+                      "null"
+                    ]
+                  },
+                  "deal_price_per_pack": {
+                    "description": "deal_total / deal_min_quantity, in euros",
+                    "type": [
+                      "number",
+                      "null"
+                    ]
+                  },
+                  "unit_price": {
+                    "description": "Normal price per unit_price_unit, where AH gives one",
+                    "type": [
+                      "number",
+                      "null"
+                    ]
+                  },
+                  "unit_price_unit": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "kg",
+                          "l",
+                          "stuk"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "description": "The unit of unit_price"
                   }
                 },
                 "required": [
@@ -361,7 +680,13 @@
                   "url",
                   "price",
                   "is_bonus",
-                  "is_available"
+                  "is_available",
+                  "pack_price",
+                  "deal_min_quantity",
+                  "deal_total",
+                  "deal_price_per_pack",
+                  "unit_price",
+                  "unit_price_unit"
                 ],
                 "additionalProperties": false
               },
@@ -560,6 +885,10 @@
             "most_bought",
             "nutriscore"
           ]
+        },
+        "include_images": {
+          "description": "Include image_url in each result (default false)",
+          "type": "boolean"
         }
       },
       "required": [
@@ -593,9 +922,11 @@
                       "type": "string"
                     },
                     "price": {
-                      "type": "number"
+                      "type": "number",
+                      "description": "Normal price of one pack in euros, whatever the deal. Same as pack_price."
                     },
                     "bonus_price": {
+                      "description": "Price of one pack with the bonus, only where AH sends one: a percentage or euro discount, or a price for one pack ('VOOR 1.99'). Absent for deals on several packs ('2e gratis', '2 voor 5.00'): then deal_min_quantity packs cost deal_total, which is deal_price_per_pack a pack.",
                       "type": "number"
                     },
                     "unit": {
@@ -608,7 +939,59 @@
                       "type": "string"
                     },
                     "image_url": {
+                      "description": "Only with include_images: true",
                       "type": "string"
+                    },
+                    "pack_price": {
+                      "description": "Normal shelf price of one pack, in euros",
+                      "type": [
+                        "number",
+                        "null"
+                      ]
+                    },
+                    "deal_min_quantity": {
+                      "description": "Packs needed to get the deal (1 for a plain discount); null without a deal, or when the mechanism is not understood",
+                      "type": [
+                        "number",
+                        "null"
+                      ]
+                    },
+                    "deal_total": {
+                      "description": "What you pay for deal_min_quantity packs with the deal, in euros",
+                      "type": [
+                        "number",
+                        "null"
+                      ]
+                    },
+                    "deal_price_per_pack": {
+                      "description": "deal_total / deal_min_quantity, in euros",
+                      "type": [
+                        "number",
+                        "null"
+                      ]
+                    },
+                    "unit_price": {
+                      "description": "Normal price per unit_price_unit, where AH gives one",
+                      "type": [
+                        "number",
+                        "null"
+                      ]
+                    },
+                    "unit_price_unit": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "kg",
+                            "l",
+                            "stuk"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "description": "The unit of unit_price"
                     }
                   },
                   "required": [
@@ -616,7 +999,13 @@
                     "title",
                     "url",
                     "price",
-                    "is_bonus"
+                    "is_bonus",
+                    "pack_price",
+                    "deal_min_quantity",
+                    "deal_total",
+                    "deal_price_per_pack",
+                    "unit_price",
+                    "unit_price_unit"
                   ],
                   "additionalProperties": false
                 }
