@@ -123,7 +123,9 @@ export function registerBonusTools(server: McpServer, ctx: ToolContext): void {
         food_only: z
           .boolean()
           .optional()
-          .describe("Leave out the non-food categories (default false). With categories, only the food ones of them come back"),
+          .describe(
+            `Leave out exactly AH's non-food categories (${NON_FOOD_CATEGORIES.map((n) => `'${n}'`).join(", ")}); every other category stays, such as 'Baby en kind' and 'Gezondheid en sport' (default false). With categories, only the food ones of them come back`,
+          ),
       },
       output: {
         period: periodName,

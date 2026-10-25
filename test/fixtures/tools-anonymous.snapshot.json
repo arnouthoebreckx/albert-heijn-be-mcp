@@ -222,7 +222,7 @@
           }
         },
         "food_only": {
-          "description": "Leave out the non-food categories (default false). With categories, only the food ones of them come back",
+          "description": "Leave out exactly AH's non-food categories ('Huishouden', 'Drogisterij', 'Koken, tafelen, vrije tijd'); every other category stays, such as 'Baby en kind' and 'Gezondheid en sport' (default false). With categories, only the food ones of them come back",
           "type": "boolean"
         }
       },

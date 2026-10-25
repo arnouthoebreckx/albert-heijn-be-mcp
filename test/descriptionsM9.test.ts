@@ -69,6 +69,14 @@ test("food_only leaves out exactly the three non-food categories, named, and kee
   assert.match(d, /food_only[^.]*(exactly|only)/i);
 });
 
+test("the food_only input names the three non-food categories it leaves out and says every other category stays", async () => {
+  const input = (await listed()).get("ah_get_bonus_offers")!.inputSchema.properties!.food_only as { description?: string };
+  const d = input.description ?? "";
+  for (const name of NON_FOOD_CATEGORIES) assert.ok(d.includes(name), `the food_only description does not name ${name}`);
+  assert.match(d, /every other category stays/i);
+  for (const name of ["Baby en kind", "Gezondheid en sport"]) assert.ok(d.includes(name), `the food_only description does not say that ${name} stays`);
+});
+
 test("the search rows' date fields say what they are, and that 2999-12-31 is no end date", async () => {
   const search = rowProperties((await listed()).get("ah_search_products")!.outputSchema, "searches", "results");
   assert.match(search.bonus_valid_from!.description!, /first day/i);
