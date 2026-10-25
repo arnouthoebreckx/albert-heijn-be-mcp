@@ -48,7 +48,8 @@ test("B2: a search row has bonus_valid_from and bonus_valid_until, nullable stri
   const row = rowOf((await listed()).get("ah_search_products")!.outputSchema, "searches", "results");
   for (const f of ["bonus_valid_from", "bonus_valid_until"]) {
     const p = row.properties[f];
-    assert.deepEqual(p.anyOf.map((a: any) => a.type).sort(), ["null", "string"], f);
+    const types: string[] = p.type ?? p.anyOf.map((a: any) => a.type);
+    assert.deepEqual([...types].sort(), ["null", "string"], f);
     assert.ok(p.description, f);
     assert.ok(row.required.includes(f), `${f} is always there, null without a date`);
   }

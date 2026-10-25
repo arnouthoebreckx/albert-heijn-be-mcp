@@ -30,17 +30,20 @@ function rowProperties(schema: any, ...path: string[]): Record<string, { descrip
 
 const MEMBER = /one member's/i;
 
-test("ah_get_bonus_offers says that on a group offer title, pack_price and the deal_ fields are one member's, and to expand the group", async () => {
+test("ah_get_bonus_offers says that on a group offer the price fields are one member's, the title names the group, and to expand the group", async () => {
   const d = (await listed()).get("ah_get_bonus_offers")!.description!;
   assert.match(d, /bonus_segment_id/);
   assert.match(d, MEMBER);
+  assert.match(d, /title names the group/);
   for (const field of ["title", "pack_price", "deal_"]) assert.ok(d.includes(field), `the description does not name ${field}`);
   assert.match(d, /ah_get_bonus_group_products[^.]*(each|every) member/i);
 });
 
-test("the fields of an offer row say they are one member's for a group offer", async () => {
+test("the fields of an offer row say they are one member's for a group offer, and the title that it names the group", async () => {
   const offer = rowProperties((await listed()).get("ah_get_bonus_offers")!.outputSchema, "offers");
-  for (const field of ["title", "pack_price", "deal_min_quantity", "deal_total", "deal_price_per_pack"]) {
+  assert.match(offer.title!.description ?? "", /bonus_segment_id/);
+  assert.match(offer.title!.description ?? "", /name for the group, not the title of one member/);
+  for (const field of ["pack_price", "deal_min_quantity", "deal_total", "deal_price_per_pack"]) {
     assert.match(offer[field]!.description ?? "", MEMBER, field);
     assert.match(offer[field]!.description ?? "", /bonus_segment_id/, field);
   }

@@ -37,10 +37,16 @@ const periodName = z.enum(["current", "next"]).describe("The bonus week this ans
 const validFrom = z.string().optional().describe("First day of the bonus week (YYYY-MM-DD, inclusive); absent when next week is not published yet");
 const validUntil = z.string().optional().describe("Last day of the bonus week (YYYY-MM-DD, inclusive); absent when next week is not published yet");
 
+/** The price fields of a group offer are AH's example product's: one member's (spec 2b, B3). Not in priceFieldsShape, which product rows share. */
+const memberPrice = <T extends z.ZodType>(field: T) =>
+  field.describe(`${field.description}. For a group offer (bonus_segment_id set) this is one member's: ah_get_bonus_group_products has each member's.`);
+
 const offerView = z.object({
   id: z.number().optional(),
   bonus_segment_id: z.string().optional(),
-  title: z.string(),
+  title: z
+    .string()
+    .describe("For a group offer (bonus_segment_id set) AH's name for the group, not the title of one member: ah_get_bonus_group_products lists the members"),
   url: z.string().optional(),
   category: z.string().optional().describe("The ah.be bonus category of the offer, as in the categories of the answer"),
   original_price: z
@@ -62,6 +68,10 @@ const offerView = z.object({
   valid_from: z.string().optional().describe("Only when this offer starts on another day than the week (YYYY-MM-DD)"),
   valid_until: z.string().optional().describe("Only when this offer ends on another day than the week (YYYY-MM-DD)"),
   ...priceFieldsShape,
+  pack_price: memberPrice(priceFieldsShape.pack_price),
+  deal_min_quantity: memberPrice(priceFieldsShape.deal_min_quantity),
+  deal_total: memberPrice(priceFieldsShape.deal_total),
+  deal_price_per_pack: memberPrice(priceFieldsShape.deal_price_per_pack),
 });
 
 const categorySummary = z.object({ name: z.string(), offer_count: z.number().describe("Offers in this category over the whole week, before any filter") });
@@ -85,10 +95,13 @@ export function registerBonusTools(server: McpServer, ctx: ToolContext): void {
         "Supports optional keyword filter to find e.g. cheese on bonus: set query='kaas'. " +
         "Every offer has a category (AH's bonus category): the answer's categories lists every category of the week with its " +
         "number of offers (offer_count, before any filter), so set categories to a list of those names to get only those, " +
-        "and food_only=true to leave out the non-food categories (household, drugstore, cooking and table items). " +
+        `and food_only=true to leave out exactly AH's non-food categories (${NON_FOOD_CATEGORIES.map((n) => `'${n}'`).join(", ")}); ` +
+        "every other category stays, such as 'Baby en kind' and 'Gezondheid en sport'. " +
         "Set previously_bought=true for offers on products the user bought before (AH's 'Eerder gekocht'). " +
         "Group deals (e.g. '2+1 gratis', 'Alle yoghurt 25% korting') have no id but a bonus_segment_id — " +
         "pass that to ah_get_bonus_group_products to see the individual products in the group. " +
+        "On a group offer the title names the group, and pack_price and the deal_* fields are one member's (AH's example product): " +
+        "call ah_get_bonus_group_products for each member's price. " +
         "Returns id, bonus_segment_id, title, category, original_price, bonus_price, discount_percentage, bonus_mechanism, " +
         "and the price fields pack_price, deal_min_quantity, deal_total, deal_price_per_pack, unit_price, unit_price_unit " +
         "(use these for a shopping line: original_price and bonus_price can be for two packs).",
