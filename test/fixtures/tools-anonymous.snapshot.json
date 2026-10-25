@@ -284,7 +284,8 @@
                 "type": "string"
               },
               "title": {
-                "type": "string"
+                "type": "string",
+                "description": "For a group offer (bonus_segment_id set) AH's name for the group, not the title of one member: ah_get_bonus_group_products lists the members"
               },
               "url": {
                 "type": "string"
@@ -316,28 +317,28 @@
                 "type": "string"
               },
               "pack_price": {
-                "description": "Normal shelf price of one pack, in euros",
+                "description": "Normal shelf price of one pack, in euros. For a group offer (bonus_segment_id set) this is one member's: ah_get_bonus_group_products has each member's.",
                 "type": [
                   "number",
                   "null"
                 ]
               },
               "deal_min_quantity": {
-                "description": "Packs needed to get the deal (1 for a plain discount); null without a deal, or when the mechanism is not understood",
+                "description": "Packs needed to get the deal (1 for a plain discount); null without a deal, or when the mechanism is not understood. For a group offer (bonus_segment_id set) this is one member's: ah_get_bonus_group_products has each member's.",
                 "type": [
                   "number",
                   "null"
                 ]
               },
               "deal_total": {
-                "description": "What you pay for deal_min_quantity packs with the deal, in euros",
+                "description": "What you pay for deal_min_quantity packs with the deal, in euros. For a group offer (bonus_segment_id set) this is one member's: ah_get_bonus_group_products has each member's.",
                 "type": [
                   "number",
                   "null"
                 ]
               },
               "deal_price_per_pack": {
-                "description": "deal_total / deal_min_quantity, in euros",
+                "description": "deal_total / deal_min_quantity, in euros. For a group offer (bonus_segment_id set) this is one member's: ah_get_bonus_group_products has each member's.",
                 "type": [
                   "number",
                   "null"
@@ -997,6 +998,20 @@
                         }
                       ],
                       "description": "The unit of unit_price"
+                    },
+                    "bonus_valid_from": {
+                      "description": "First day of the deal (YYYY-MM-DD, inclusive), as AH's search answer gives it; null without a deal, or when AH gives no date",
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "bonus_valid_until": {
+                      "description": "Last day of the deal (YYYY-MM-DD, inclusive), as AH gives it: 2999-12-31 means the deal has no end date; null without a deal, or when AH gives no date",
+                      "type": [
+                        "string",
+                        "null"
+                      ]
                     }
                   },
                   "required": [
@@ -1010,7 +1025,9 @@
                     "deal_total",
                     "deal_price_per_pack",
                     "unit_price",
-                    "unit_price_unit"
+                    "unit_price_unit",
+                    "bonus_valid_from",
+                    "bonus_valid_until"
                   ],
                   "additionalProperties": false
                 }
